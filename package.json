@@ -1,9 +1,17 @@
 {
-  "dependencies": {
-    "midi-file": "^1.2.4",
-    "pg": "^8.21.0"
+  "name": "autohokey-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch api/index.js",
+    "start": "node api/index.js"
   },
-  "devDependencies": {
-    "midi-writer-js": "^3.2.1"
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0"
   }
 }

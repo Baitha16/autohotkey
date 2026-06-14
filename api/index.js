@@ -1,0 +1,388 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
+import { supabase } from "../src/db/supabase.js";
+import {
+  isValidLicenseCode,
+  isValidPhone,
+  isValidMembershipType,
+  isValidDuration,
+} from "../src/validators/license.js";
+
+const app = express();
+
+app.use(cors());
+app.use(express.json({ limit: "16kb" }));
+
+/* ---------- helpers ---------- */
+
+function randomGroup() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  return Array.from({ length: 4 }, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join("");
+}
+
+function ok(res, data, status = 200) {
+  return res.status(status).json({ success: true, ...data });
+}
+
+function fail(res, error, status = 400) {
+  return res.status(status).json({ success: false, error });
+}
+
+/* ---------- auth middleware ---------- */
+
+function adminAuth(req, res, next) {
+  const key = req.headers["x-api-key"];
+  if (!key || key !== process.env.ADMIN_KEY) {
+    return fail(res, "Unauthorized", 401);
+  }
+  next();
+}
+
+/* ---------- rate limiters ---------- */
+
+const adminLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { success: false, error: "Too many requests" },
+});
+
+const trialLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: { success: false, error: "Too many trial requests" },
+});
+
+/* ---------- PUBLIC: verify-license ---------- */
+
+app.post("/api/verify-license", async (req, res) => {
+  try {
+    const { license_code } = req.body;
+
+    if (!license_code || !isValidLicenseCode(license_code)) {
+      return fail(res, "Invalid license code format");
+    }
+
+    const { data, error } = await supabase
+      .from("licenses")
+      .select("license_code, membership_type, expires_at, status")
+      .eq("license_code", license_code)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) return fail(res, "License code not found", 404);
+
+    if (data.status !== "active") {
+      return fail(res, `License is ${data.status}`, 403);
+    }
+
+    const now = new Date();
+    const expires = new Date(data.expires_at);
+
+    if (now > expires) {
+      await supabase
+        .from("licenses")
+        .update({ status: "expired" })
+        .eq("license_code", license_code);
+
+      return fail(res, "License has expired", 403);
+    }
+
+    await supabase
+      .from("licenses")
+      .update({ last_used_at: now.toISOString() })
+      .eq("license_code", license_code);
+
+    return ok(res, {
+      membership_type: data.membership_type,
+      expires_at: data.expires_at,
+    });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- PUBLIC: generate-trial ---------- */
+
+app.post("/api/generate-trial", trialLimiter, async (req, res) => {
+  try {
+    let license_code;
+    let attempts = 0;
+
+    while (true) {
+      license_code = `TRIAL-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
+      const { data } = await supabase
+        .from("licenses")
+        .select("id")
+        .eq("license_code", license_code)
+        .maybeSingle();
+
+      if (!data) break;
+      if (++attempts > 10) {
+        return fail(res, "Could not generate unique code", 500);
+      }
+    }
+
+    const expires_at = new Date(Date.now() + 3600000).toISOString();
+    const { error } = await supabase.from("licenses").insert({
+      license_code,
+      membership_type: "trial",
+      expires_at,
+      status: "active",
+    });
+
+    if (error) throw error;
+
+    return ok(res, { license_code, expires_at });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: list-licenses ---------- */
+
+app.get("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("licenses")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return ok(res, { data });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: generate-code ---------- */
+
+app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { membership_type, duration_days, phone } = req.body;
+
+    if (!isValidMembershipType(membership_type)) {
+      return fail(res, "Invalid membership type");
+    }
+
+    if (membership_type !== "lifetime" && !isValidDuration(duration_days)) {
+      return fail(res, "Duration must be between 1 and 3650 days");
+    }
+
+    const useEZ = phone !== undefined && phone !== null && phone !== "";
+    if (useEZ && !isValidPhone(phone)) {
+      return fail(res, "Phone must be 9-15 digits");
+    }
+
+    let license_code;
+
+    if (useEZ) {
+      license_code = `EZ-${phone}`;
+      const newExpiry =
+        membership_type === "lifetime"
+          ? new Date(Date.now() + 36500 * 86400000).toISOString()
+          : new Date(Date.now() + duration_days * 86400000).toISOString();
+
+      const { data: existing } = await supabase
+        .from("licenses")
+        .select("id, expires_at")
+        .eq("license_code", license_code)
+        .maybeSingle();
+
+      if (existing) {
+        const finalExpiry =
+          new Date(newExpiry) > new Date(existing.expires_at)
+            ? newExpiry
+            : existing.expires_at;
+
+        await supabase
+          .from("licenses")
+          .update({ membership_type, expires_at: finalExpiry })
+          .eq("license_code", license_code);
+
+        return ok(res, { license_code, expires_at: finalExpiry });
+      }
+
+      const { error } = await supabase.from("licenses").insert({
+        license_code,
+        membership_type,
+        expires_at: newExpiry,
+        status: "active",
+      });
+
+      if (error) throw error;
+      return ok(res, { license_code, expires_at: newExpiry });
+    }
+
+    let attempts = 0;
+    while (true) {
+      license_code = `VIP-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
+      const { data } = await supabase
+        .from("licenses")
+        .select("id")
+        .eq("license_code", license_code)
+        .maybeSingle();
+
+      if (!data) break;
+      if (++attempts > 10) {
+        return fail(res, "Could not generate unique code", 500);
+      }
+    }
+
+    const expires_at =
+      membership_type === "lifetime"
+        ? new Date(Date.now() + 36500 * 86400000).toISOString()
+        : new Date(Date.now() + duration_days * 86400000).toISOString();
+
+    const { error } = await supabase.from("licenses").insert({
+      license_code,
+      membership_type,
+      expires_at,
+      status: "active",
+    });
+
+    if (error) throw error;
+    return ok(res, { license_code, expires_at });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: extend-license ---------- */
+
+app.post("/api/extend-license", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { license_code, duration_days } = req.body;
+
+    if (!license_code || !isValidLicenseCode(license_code)) {
+      return fail(res, "Invalid license code format");
+    }
+
+    if (!isValidDuration(duration_days)) {
+      return fail(res, "Duration must be between 1 and 3650 days");
+    }
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("licenses")
+      .select("id, expires_at, status")
+      .eq("license_code", license_code)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!existing) return fail(res, "License code not found", 404);
+
+    const currentExpiry = new Date(existing.expires_at);
+    const now = new Date();
+    const base = currentExpiry > now ? currentExpiry : now;
+    const newExpiry = new Date(
+      base.getTime() + duration_days * 86400000
+    ).toISOString();
+
+    const { error: updateError } = await supabase
+      .from("licenses")
+      .update({
+        expires_at: newExpiry,
+        last_used_at: now.toISOString(),
+        status: "active",
+      })
+      .eq("license_code", license_code);
+
+    if (updateError) throw updateError;
+
+    return ok(res, { license_code, expires_at: newExpiry });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: suspend-license (toggle) ---------- */
+
+app.post("/api/suspend-license", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { license_code } = req.body;
+
+    if (!license_code || !isValidLicenseCode(license_code)) {
+      return fail(res, "Invalid license code format");
+    }
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("licenses")
+      .select("id, status")
+      .eq("license_code", license_code)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!existing) return fail(res, "License code not found", 404);
+
+    const newStatus =
+      existing.status === "suspended" ? "active" : "suspended";
+
+    const { error } = await supabase
+      .from("licenses")
+      .update({ status: newStatus })
+      .eq("license_code", license_code);
+
+    if (error) throw error;
+
+    return ok(res, {
+      license_code,
+      status: newStatus,
+      message: `License ${newStatus === "active" ? "unsuspended" : "suspended"}`,
+    });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: delete-license ---------- */
+
+app.delete("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { license_code } = req.body;
+
+    if (!license_code || !isValidLicenseCode(license_code)) {
+      return fail(res, "Invalid license code format");
+    }
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("licenses")
+      .select("id")
+      .eq("license_code", license_code)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!existing) return fail(res, "License code not found", 404);
+
+    const { error } = await supabase
+      .from("licenses")
+      .delete()
+      .eq("license_code", license_code);
+
+    if (error) throw error;
+
+    return ok(res, { message: "License deleted" });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- serve static dashboard ---------- */
+
+app.use(express.static("public"));
+
+/* ---------- start / export ---------- */
+
+const PORT = process.env.PORT || 3000;
+const isVercel = process.env.VERCEL === "1";
+
+if (!isVercel) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

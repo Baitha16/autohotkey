@@ -5,17 +5,14 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#e2e8f0;padding:24px}
 .container{max-width:1200px;margin:0 auto}
-
-/* stats */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
 .stat{background:#1e293b;border-radius:10px;padding:14px 16px;border:1px solid #334155}
 .stat .val{font-size:24px;font-weight:700}
 .stat .lbl{font-size:12px;color:#94a3b8;margin-top:2px}
+.stat.total .val{color:#e2e8f0}
 .stat.active .val{color:#4ade80}
 .stat.expired .val{color:#f87171}
 .stat.suspended .val{color:#fbbf24}
-
-/* toolbar */
 .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;background:#1e293b;padding:14px 18px;border-radius:10px;border:1px solid #334155}
 .toolbar select,.toolbar input{padding:8px 12px;border:1px solid #475569;border-radius:6px;font-size:13px;background:#0f172a;color:#e2e8f0}
 .toolbar select:focus,.toolbar input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.2)}
@@ -27,8 +24,6 @@ body{background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
 .search-wrap{position:relative;flex:1;min-width:160px}
 .search-wrap input{width:100%;padding-left:32px}
 .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none}
-
-/* table */
 .table-wrap{background:#1e293b;border-radius:10px;border:1px solid #334155;overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:#0f172a;text-align:left;padding:10px 12px;font-weight:600;border-bottom:2px solid #334155;color:#94a3b8;white-space:nowrap;cursor:pointer;user-select:none}
@@ -60,15 +55,11 @@ td button:disabled{opacity:.4;cursor:not-allowed}
 .pagination button:hover:not(:disabled){border-color:#6366f1;color:#6366f1}
 .pagination button:disabled{opacity:.4;cursor:not-allowed}
 .pagination .page-info{font-size:12px;color:#94a3b8}
-
-/* toast */
 .toast{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
 .toast-item{padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:slideIn .2s ease;min-width:240px}
 .toast-item.ok{background:#065f46;border:1px solid #10b981;color:#a7f3d0}
 .toast-item.err{background:#7f1d1d;border:1px solid #ef4444;color:#fecaca}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-
-/* modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:998;display:flex;align-items:center;justify-content:center}
 .modal{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;min-width:340px;max-width:90vw;box-shadow:0 16px 48px rgba(0,0,0,.5)}
 .modal h3{font-size:16px;margin-bottom:12px}
@@ -82,13 +73,24 @@ td button:disabled{opacity:.4;cursor:not-allowed}
 .modal .btn-danger{background:#ef4444;color:#fff}
 .modal .btn-danger:hover{background:#dc2626}
 .modal label{display:block;font-size:13px;color:#94a3b8;margin-bottom:4px}
-.modal input[type=number]{width:100%;padding:8px 12px;border:1px solid #475569;border-radius:6px;background:#0f172a;color:#e2e8f0;font-size:13px;margin-bottom:12px}
-.modal input[type=number]:focus{outline:none;border-color:#6366f1}
-
+.modal input[type=number],.modal input[type=password]{width:100%;padding:8px 12px;border:1px solid #475569;border-radius:6px;background:#0f172a;color:#e2e8f0;font-size:13px;margin-bottom:12px}
+.modal input[type=number]:focus,.modal input[type=password]:focus{outline:none;border-color:#6366f1}
 .empty{text-align:center;padding:40px 20px;color:#64748b;font-size:14px}
 .loading{text-align:center;padding:40px 20px}
 .spinner{display:inline-block;width:24px;height:24px;border:3px solid #334155;border-top-color:#6366f1;border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:60vh}
+.login-box{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:32px;width:360px;text-align:center}
+.login-box h2{font-size:20px;margin-bottom:6px}
+.login-box p{font-size:13px;color:#94a3b8;margin-bottom:20px}
+.login-box input{width:100%;padding:10px 14px;border:1px solid #475569;border-radius:6px;background:#0f172a;color:#e2e8f0;font-size:14px;margin-bottom:12px;text-align:center}
+.login-box input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.2)}
+.login-box button{width:100%;padding:10px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;color:#fff;background:#6366f1;transition:background .15s}
+.login-box button:hover{background:#4f46e5}
+.login-box .err{background:rgba(248,113,113,.15);color:#f87171;padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:12px}
+.logout-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding:10px 16px;background:#1e293b;border-radius:8px;border:1px solid #334155;font-size:13px;color:#94a3b8}
+.logout-bar button{background:transparent;border:1px solid #475569;color:#e2e8f0;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px}
+.logout-bar button:hover{border-color:#ef4444;color:#ef4444}
 @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)} .toolbar{flex-direction:column;align-items:stretch}.search-wrap{min-width:0}}
 </style>
 </head>
@@ -98,8 +100,9 @@ td button:disabled{opacity:.4;cursor:not-allowed}
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
-const BASE = "https://mrynitasirdzzfsmcaqh.supabase.co/functions/v1";
 const { useState, useEffect, useMemo, useCallback } = React;
+
+const LS_KEY = "dashboard_api_key";
 
 function useToasts() {
   const [toasts, setToasts] = useState([]);
@@ -166,11 +169,43 @@ function PromptModal({ state, close }) {
   </div>;
 }
 
+function Login({ onLogin }) {
+  const [key, setKey] = useState("");
+  const [err, setErr] = useState("");
+
+  const submit = async () => {
+    setErr("");
+    if (!key.trim()) { setErr("Enter admin key"); return; }
+    const ok = await onLogin(key.trim());
+    if (!ok) setErr("Invalid admin key");
+  };
+
+  return (
+    <div className="login-wrap">
+      <div className="login-box">
+        <h2>License Dashboard</h2>
+        <p>Enter admin key to continue</p>
+        {err && <div className="err">{err}</div>}
+        <input type="password" value={key} onChange={e=>setKey(e.target.value)} placeholder="Admin key" autoFocus onKeyDown={e=>e.key==="Enter"&&submit()} />
+        <button onClick={submit}>Login</button>
+      </div>
+    </div>
+  );
+}
+
+function api(path, apiKey, options = {}) {
+  return fetch(path, {
+    headers: { "Content-Type": "application/json", ...(apiKey ? { "x-api-key": apiKey } : {}) },
+    ...options,
+  }).then(r => r.json());
+}
+
 function copy(text, add) {
   navigator.clipboard.writeText(text).then(() => add("Copied: "+text), () => add("Copy failed", true));
 }
 
 function App() {
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem(LS_KEY));
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState("monthly");
@@ -194,15 +229,32 @@ function App() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(BASE+"/list-licenses");
-      const d = await r.json();
+      const d = await api("/api/licenses", apiKey);
       if (d.success) setLicenses(d.data);
       else add(d.error, true);
     } catch(e){ add(e.message, true) }
     finally{ setLoading(false) }
-  }, [add]);
+  }, [apiKey, add]);
 
-  useEffect(() => { load() }, [load]);
+  useEffect(() => { if (apiKey) load() }, [load, apiKey]);
+
+  const handleLogin = async (key) => {
+    const d = await api("/api/licenses", key);
+    if (d.success) {
+      localStorage.setItem(LS_KEY, key);
+      setApiKey(key);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    localStorage.removeItem(LS_KEY);
+    setApiKey(null);
+    setLicenses([]);
+  };
+
+  if (!apiKey) return <Login onLogin={handleLogin} />;
 
   const stats = useMemo(() => {
     const s = { total: licenses.length, active: 0, expired: 0, suspended: 0 };
@@ -224,7 +276,7 @@ function App() {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let va = a[sortCol], vb = b[sortCol];
-      if (sortCol === "expires_at" || sortCol === "created_at" || sortCol === "last_used_at") {
+      if (["expires_at","created_at","last_used_at"].includes(sortCol)) {
         va = va ? new Date(va).getTime() : 0;
         vb = vb ? new Date(vb).getTime() : 0;
       }
@@ -252,8 +304,7 @@ function App() {
     if (type !== "lifetime") body.duration_days = +days;
     if (phone.trim()) body.phone = phone.trim();
     try {
-      const r = await fetch(BASE+"/generate-code", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
-      const d = await r.json();
+      const d = await api("/api/generate-code", apiKey, { method:"POST", body: JSON.stringify(body) });
       if (d.success) add("Generated: "+d.license_code);
       else add(d.error, true);
       load();
@@ -262,8 +313,7 @@ function App() {
 
   const genTrial = async () => {
     try {
-      const r = await fetch(BASE+"/generate-trial", { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
-      const d = await r.json();
+      const d = await api("/api/generate-trial", null, { method:"POST", body:"{}" });
       if (d.success) add("Trial: "+d.license_code);
       else add(d.error, true);
       load();
@@ -276,7 +326,7 @@ function App() {
       if (!ok) return;
     }
     if (endpoint === "suspend-license") {
-      const ok = await confirm.confirm("Suspend license "+code+"?", false);
+      const ok = await confirm.confirm("Toggle suspend for license "+code+"?", false);
       if (!ok) return;
     }
     let body = { license_code: code };
@@ -286,8 +336,9 @@ function App() {
       body.duration_days = +d;
     }
     try {
-      const r = await fetch(BASE+"/"+endpoint, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
-      const d = await r.json();
+      const ep = endpoint === "delete-license" ? "licenses" : endpoint;
+      const method = endpoint === "delete-license" ? "DELETE" : "POST";
+      const d = await api("/api/"+ep, apiKey, { method, body: JSON.stringify(body) });
       if (d.success) add(successMsg+": "+code);
       else add(d.error, true);
       load();
@@ -313,11 +364,13 @@ function App() {
       <ConfirmModal state={confirm.state} close={confirm.close} />
       <PromptModal state={prompt.state} close={prompt.close} />
 
-      <h2 style={{fontSize:22,fontWeight:700,marginBottom:6}}>License Dashboard</h2>
-      <p style={{fontSize:13,color:"#94a3b8",marginBottom:20}}>{licenses.length} total licenses</p>
+      <div className="logout-bar">
+        <span>License Dashboard — {licenses.length} total licenses</span>
+        <button onClick={logout}>Logout</button>
+      </div>
 
       <div className="stats">
-        <div className="stat"><div className="val">{stats.total}</div><div className="lbl">Total</div></div>
+        <div className="stat total"><div className="val">{stats.total}</div><div className="lbl">Total</div></div>
         <div className="stat active"><div className="val">{stats.active}</div><div className="lbl">Active</div></div>
         <div className="stat expired"><div className="val">{stats.expired}</div><div className="lbl">Expired</div></div>
         <div className="stat suspended"><div className="val">{stats.suspended}</div><div className="lbl">Suspended</div></div>
@@ -328,7 +381,7 @@ function App() {
           <option>monthly</option><option>weekly</option><option>lifetime</option>
         </select>
         {type !== "lifetime" && <input type="number" value={days} readOnly style={{width:60,background:"#0f172a",textAlign:"center"}} />}
-        <input value={phone} onChange={e=>setPhone(e.target.value)} style={{width:150}} placeholder="Phone (EZ code)" />
+        <input value={phone} onChange={e=>setPhone(e.target.value)} style={{width:150}} placeholder="Phone (optional, EZ code)" />
         <button className="btn-gen" onClick={generate}>Generate</button>
         <button className="btn-trial" onClick={genTrial}>Trial 1h</button>
         <div className="search-wrap">

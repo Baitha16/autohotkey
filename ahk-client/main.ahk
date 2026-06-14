@@ -6,7 +6,9 @@ SetWorkingDir %A_ScriptDir%
 FileEncoding, UTF-8
 
 ; ============= MEMBERSHIP API =============
-BASE_URL := "https://mrynitasirdzzfsmcaqh.supabase.co/functions/v1"
+; Update BASE_URL after deploying to Vercel
+BASE_URL := "http://localhost:3000/api"
+; Production example: "https://your-project.vercel.app/api"
 
 HttpPost(url, payload) {
     http := ComObjCreate("WinHttp.WinHttpRequest.5.1")

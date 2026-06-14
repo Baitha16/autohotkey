@@ -1,2 +1,9 @@
 node_modules/
 .env
+.env.local
+supabase/.temp/
+*.exe
+.DS_Store
+Thumbs.db
+dist/
+build/
