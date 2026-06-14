@@ -1,0 +1,23 @@
+[functions.generate-code]
+verify_jwt = false
+
+[functions.verify-license]
+verify_jwt = false
+
+[functions.extend-license]
+verify_jwt = false
+
+[functions.suspend-license]
+verify_jwt = false
+
+[functions.delete-license]
+verify_jwt = false
+
+[functions.generate-trial]
+verify_jwt = false
+
+[functions.dashboard]
+verify_jwt = false
+
+[functions.list-licenses]
+verify_jwt = false

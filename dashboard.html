@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>License Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1a1a2e;padding:30px}
+.container{max-width:1000px;margin:0 auto}
+h2{font-size:22px;margin-bottom:20px}
+.msg{padding:10px 14px;margin-bottom:14px;border-radius:8px;font-size:14px}
+.msg.ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+.msg.err{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;background:#fff;padding:14px 18px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.bar select,.bar input{padding:7px 10px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;background:#fff}
+.bar select:focus,.bar input:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 2px rgba(79,70,229,.15)}
+.bar button{padding:7px 16px;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500;color:#fff;transition:background .15s}
+.btn-gen{background:#4f46e5}
+.btn-gen:hover{background:#4338ca}
+.btn-trial{background:#059669}
+.btn-trial:hover{background:#047857}
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8f9fa;text-align:left;padding:10px 12px;font-weight:600;border-bottom:2px solid #e9ecef}
+td{padding:10px 12px;border-bottom:1px solid #f0f0f0}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8f9ff}
+.code{font-family:"SF Mono","Fira Code","Courier New",monospace;font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-active{background:#d4edda;color:#155724}
+.badge-expired{background:#f8d7da;color:#721c24}
+.badge-suspended{background:#fff3cd;color:#856404}
+td button{padding:4px 10px;border:none;border-radius:4px;font-size:11px;cursor:pointer;color:#fff;margin-right:4px;transition:background .15s}
+.btn-ext{background:#4f46e5}
+.btn-ext:hover{background:#4338ca}
+.btn-sus{background:#d97706}
+.btn-sus:hover{background:#b45309}
+.btn-del{background:#dc2626}
+.btn-del:hover{background:#b91c1c}
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="root"></div>
+</div>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const BASE = "https://mrynitasirdzzfsmcaqh.supabase.co/functions/v1";
+const { useState, useEffect } = React;
+
+function App() {
+  const [licenses, setLicenses] = useState([]);
+  const [msg, setMsg] = useState(null);
+  const [type, setType] = useState("monthly");
+  const [days, setDays] = useState(30);
+  const [phone, setPhone] = useState("");
+
+  const changeType = (t) => {
+    setType(t);
+    if (t === "monthly") setDays(30);
+    else if (t === "weekly") setDays(7);
+  };
+
+  const load = async () => {
+    const r = await fetch(BASE+"/list-licenses");
+    const d = await r.json();
+    if (d.success) setLicenses(d.data);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const show = (t, e) => { setMsg({ text: t, err: e }); setTimeout(() => { setMsg(null); load(); }, 1500); };
+
+  const generate = async () => {
+    const body = { membership_type: type };
+    if (type !== "lifetime") body.duration_days = +days;
+    if (phone.trim()) body.phone = phone.trim();
+    const r = await fetch(BASE+"/generate-code", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    const d = await r.json();
+    show(d.license_code || d.error, !d.success);
+  };
+
+  const genTrial = async () => {
+    const r = await fetch(BASE+"/generate-trial", { method:"POST", headers:{"Content-Type":"application/json"}, body:"{}" });
+    const d = await r.json();
+    show(d.license_code || d.error, !d.success);
+  };
+
+  const act = async (code, endpoint, successMsg) => {
+    if (endpoint === "delete-license" && !confirm("Delete "+code+"?")) return;
+    if (endpoint === "suspend-license" && !confirm("Suspend "+code+"?")) return;
+    let body = { license_code: code };
+    if (endpoint === "extend-license") {
+      const d = prompt("Days:", 30);
+      if (!d) return;
+      body.duration_days = +d;
+    }
+    const r = await fetch(BASE+"/"+endpoint, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    const d = await r.json();
+    show(d.success ? successMsg : d.error, !d.success);
+  };
+
+  return (
+    <div>
+      <h2>License Dashboard</h2>
+      {msg && <div className={"msg "+(msg.err?"err":"ok")}><b>{msg.err?"ERR: ":"OK: "}{msg.text}</b></div>}
+
+      <div className="bar">
+        <select value={type} onChange={e=>changeType(e.target.value)}>
+          <option>monthly</option><option>weekly</option><option>lifetime</option>
+        </select>
+        {type !== "lifetime" && <input type="number" value={days} readOnly style={{width:60,background:"#f0f0f0"}} />}
+        <input value={phone} onChange={e=>setPhone(e.target.value)} style={{width:160}} placeholder="Phone (EZ code)" />
+        <button className="btn-gen" onClick={generate}>Generate</button>
+        <button className="btn-trial" onClick={genTrial}>Trial 1h</button>
+      </div>
+
+      <div className="card">
+      <table>
+        <thead><tr><th>Code</th><th>Type</th><th>Expires</th><th>Last Used</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>{licenses.map((l,i) => (
+          <tr key={l.id || i}>
+            <td className="code">{l.license_code}</td>
+            <td>{l.membership_type}</td>
+            <td>{l.membership_type === "lifetime" ? "Lifetime" : new Date(l.expires_at).toLocaleString()}</td>
+            <td>{l.last_used_at ? new Date(l.last_used_at).toLocaleString() : "-"}</td>
+            <td><span className={"badge badge-"+l.status}>{l.status}</span></td>
+            <td>
+              <button className="btn-ext" onClick={()=>act(l.license_code,"extend-license","Extended")}>Extend</button>
+              <button className="btn-sus" onClick={()=>act(l.license_code,"suspend-license","Suspended")}>Suspend</button>
+              <button className="btn-del" onClick={()=>act(l.license_code,"delete-license","Deleted")}>Delete</button>
+            </td>
+          </tr>
+        ))}</tbody>
+      </table>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
