@@ -1,0 +1,18 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {
+      animation: {
+        "slide-in": "slideIn 0.2s ease-out",
+      },
+      keyframes: {
+        slideIn: {
+          from: { transform: "translateX(100%)", opacity: "0" },
+          to: { transform: "translateX(0)", opacity: "1" },
+        },
+      },
+    },
+  },
+  plugins: [],
+};

@@ -370,9 +370,9 @@ app.delete("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
   }
 });
 
-/* ---------- serve static dashboard ---------- */
+/* ---------- serve static frontend ---------- */
 
-app.use(express.static("public"));
+app.use(express.static("frontend/dist"));
 
 /* ---------- start / export ---------- */
 

@@ -1,85 +1,94 @@
-# Membership License System
+# License Management System
 
-Supabase Edge Functions + AutoHotkey client for license code management.
+Express API + React frontend for license code management, deployable on Vercel.
 
 ## Folder Structure
 
 ```
-supabase/
-├── migrations/
-│   └── 001_create_licenses.sql   # Database schema
-├── functions/
-│   ├── _shared/
-│   │   ├── cors.ts               # CORS headers
-│   │   ├── supabase.ts           # Supabase client
-│   │   └── validation.ts         # Input validation
-│   ├── generate-code/            # POST /generate-code
-│   ├── login/                    # POST /login
-│   ├── extend-license/           # POST /extend-license
-│   ├── suspend-license/          # POST /suspend-license
-│   └── delete-license/           # POST /delete-license
-├── config.toml
-ahk-client/
-├── membership.ahk                # Reusable membership API module
-└── main.ahk                      # Your main script (separate from membership)
+api/index.js                  # Express API (Vercel serverless)
+frontend/
+├── index.html                # Vite entry
+├── src/
+│   ├── main.jsx              # React entry
+│   ├── App.jsx               # Root component
+│   ├── components/           # UI components
+│   │   ├── Login.jsx         # Admin login
+│   │   ├── Dashboard.jsx     # Main dashboard
+│   │   ├── StatsBar.jsx      # Statistics cards
+│   │   ├── Toolbar.jsx       # Action toolbar
+│   │   ├── LicenseTable.jsx  # License table
+│   │   ├── Modals.jsx        # Confirm/Prompt modals
+│   │   └── Toast.jsx         # Toast notifications
+│   ├── hooks/                # Custom hooks
+│   └── lib/
+│       └── api.js            # API client
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+ahk-client/main.ahk           # AutoHotkey client
+supabase/migrations/          # Database schema
 ```
 
-## Deployment
+## Local Development
 
-### 1. Create Supabase project
+### 1. Setup environment
 
-Go to [supabase.com](https://supabase.com) and create a new project.
+Copy `.env.example` to `.env` and fill in your Supabase credentials:
 
-### 2. Run migrations
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ADMIN_KEY=your-secret-admin-key
+```
 
-Open **SQL Editor** in Supabase dashboard and paste the contents of `001_create_licenses.sql`.
+### 2. Run database migrations
 
-### 3. Deploy Edge Functions
+Open **SQL Editor** in Supabase dashboard and paste `supabase/migrations/001_create_licenses.sql`.
 
-Install Supabase CLI:
+### 3. Start backend
 
 ```bash
-npm install -g supabase
+npm install
+npm run dev
 ```
 
-Link your project:
+### 4. Start frontend (separate terminal)
 
 ```bash
-cd supabase
-supabase login
-supabase link --project-ref your-project-ref
+cd frontend
+npm install
+npm run dev
 ```
 
-Deploy all functions:
+The frontend runs on `http://localhost:5173` and proxies API calls to Express on `http://localhost:3000`.
+
+## Deploy to Vercel
 
 ```bash
-supabase functions deploy generate-code
-supabase functions deploy login
-supabase functions deploy extend-license
-supabase functions deploy suspend-license
-supabase functions deploy delete-license
+npm install -g vercel
+vercel
 ```
 
-Set `verify_jwt = false` in `config.toml` (already done) so functions are publicly accessible.
-
-### 4. Use in AutoHotkey
-
-Edit `BASE_URL` in `ahk-client/membership.ahk` to point to your Supabase project URL.
-
-```ahk
-global BASE_URL := "https://your-project-ref.supabase.co/functions/v1"
-```
-
-Then `#Include "membership.ahk"` in your main script and call the functions directly.
+Set environment variables in Vercel dashboard:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_KEY`
 
 ## API Reference
 
-All endpoints return JSON with `success` boolean.
+All endpoints return JSON with `success` boolean. Admin endpoints require `x-api-key` header.
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/generate-code` | POST | Create a new license |
-| `/verify-license` | POST | Validate and use a license |
-| `/extend-license` | POST | Extend license expiration |
-| `/suspend-license` | POST | Suspend a license |
-| `/delete-license` | POST | Delete a license |
+| Endpoint | Method | Auth | Purpose |
+|---|---|---|---|
+| `/api/verify-license` | POST | Public | Validate and use a license |
+| `/api/generate-trial` | POST | Public | Generate 1-hour trial |
+| `/api/licenses` | GET | Admin | List all licenses |
+| `/api/generate-code` | POST | Admin | Create a new license |
+| `/api/extend-license` | POST | Admin | Extend license expiration |
+| `/api/suspend-license` | POST | Admin | Toggle suspend/unsuspend |
+| `/api/licenses` | DELETE | Admin | Delete a license |
+
+## AutoHotkey Client
+
+Edit `BASE_URL` in `ahk-client/main.ahk` to point to your server URL.
