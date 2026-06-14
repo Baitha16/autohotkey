@@ -8,8 +8,8 @@ export default function Toast({ toasts }) {
           key={t.id}
           className={`animate-slide-in rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
             t.err
-              ? "bg-red-50 border border-red-200 text-red-700"
-              : "bg-emerald-50 border border-emerald-200 text-emerald-700"
+              ? "bg-red-50 border border-red-200 text-red-700 dark:bg-red-950 dark:border-red-800 dark:text-red-400"
+              : "bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-400"
           }`}
         >
           {t.err ? "ERR: " : "OK: "}

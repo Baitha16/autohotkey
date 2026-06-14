@@ -1,8 +1,9 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { supabase } from "../src/db/supabase.js";
+import { getSupabase } from "../src/db/supabase.js";
 import {
   isValidLicenseCode,
   isValidPhone,
@@ -36,6 +37,7 @@ function fail(res, error, status = 400) {
 
 function adminAuth(req, res, next) {
   const key = req.headers["x-api-key"];
+  console.log("DEBUG adminAuth: key=", key, "| expected=", process.env.ADMIN_KEY);
   if (!key || key !== process.env.ADMIN_KEY) {
     return fail(res, "Unauthorized", 401);
   }
@@ -66,9 +68,9 @@ app.post("/api/verify-license", async (req, res) => {
       return fail(res, "Invalid license code format");
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("licenses")
-      .select("license_code, membership_type, expires_at, status")
+      .select("license_code, membership_type, expires_at, status, owner")
       .eq("license_code", license_code)
       .maybeSingle();
 
@@ -84,7 +86,7 @@ app.post("/api/verify-license", async (req, res) => {
     const expires = new Date(data.expires_at);
 
     if (now > expires) {
-      await supabase
+      await getSupabase()
         .from("licenses")
         .update({ status: "expired" })
         .eq("license_code", license_code);
@@ -92,7 +94,7 @@ app.post("/api/verify-license", async (req, res) => {
       return fail(res, "License has expired", 403);
     }
 
-    await supabase
+    await getSupabase()
       .from("licenses")
       .update({ last_used_at: now.toISOString() })
       .eq("license_code", license_code);
@@ -100,6 +102,7 @@ app.post("/api/verify-license", async (req, res) => {
     return ok(res, {
       membership_type: data.membership_type,
       expires_at: data.expires_at,
+      owner: data.owner,
     });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
@@ -115,7 +118,7 @@ app.post("/api/generate-trial", trialLimiter, async (req, res) => {
 
     while (true) {
       license_code = `TRIAL-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("licenses")
         .select("id")
         .eq("license_code", license_code)
@@ -128,12 +131,15 @@ app.post("/api/generate-trial", trialLimiter, async (req, res) => {
     }
 
     const expires_at = new Date(Date.now() + 3600000).toISOString();
-    const { error } = await supabase.from("licenses").insert({
+    const trialData = {
       license_code,
       membership_type: "trial",
       expires_at,
       status: "active",
-    });
+    };
+    const { owner: trialOwner } = req.body;
+    if (trialOwner != null) trialData.owner = trialOwner;
+    const { error } = await getSupabase().from("licenses").insert(trialData);
 
     if (error) throw error;
 
@@ -147,7 +153,7 @@ app.post("/api/generate-trial", trialLimiter, async (req, res) => {
 
 app.get("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("licenses")
       .select("*")
       .order("created_at", { ascending: false });
@@ -164,6 +170,7 @@ app.get("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
 app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
   try {
     const { membership_type, duration_days, phone } = req.body;
+    const { owner } = req.body;
 
     if (!isValidMembershipType(membership_type)) {
       return fail(res, "Invalid membership type");
@@ -173,21 +180,22 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       return fail(res, "Duration must be between 1 and 3650 days");
     }
 
-    const useEZ = phone !== undefined && phone !== null && phone !== "";
-    if (useEZ && !isValidPhone(phone)) {
+    const phoneStr = phone != null ? String(phone).trim() : "";
+    const useEZ = phoneStr !== "";
+    if (useEZ && !isValidPhone(phoneStr)) {
       return fail(res, "Phone must be 9-15 digits");
     }
 
     let license_code;
 
     if (useEZ) {
-      license_code = `EZ-${phone}`;
+      license_code = `EZ-${phoneStr}`;
       const newExpiry =
         membership_type === "lifetime"
           ? new Date(Date.now() + 36500 * 86400000).toISOString()
           : new Date(Date.now() + duration_days * 86400000).toISOString();
 
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from("licenses")
         .select("id, expires_at")
         .eq("license_code", license_code)
@@ -199,20 +207,24 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
             ? newExpiry
             : existing.expires_at;
 
-        await supabase
+        const updateData = { membership_type, expires_at: finalExpiry };
+        if (owner != null) updateData.owner = owner;
+        await getSupabase()
           .from("licenses")
-          .update({ membership_type, expires_at: finalExpiry })
+          .update(updateData)
           .eq("license_code", license_code);
 
         return ok(res, { license_code, expires_at: finalExpiry });
       }
 
-      const { error } = await supabase.from("licenses").insert({
+      const insertData = {
         license_code,
         membership_type,
         expires_at: newExpiry,
         status: "active",
-      });
+      };
+      if (owner != null) insertData.owner = owner;
+      const { error } = await getSupabase().from("licenses").insert(insertData);
 
       if (error) throw error;
       return ok(res, { license_code, expires_at: newExpiry });
@@ -220,8 +232,11 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
 
     let attempts = 0;
     while (true) {
-      license_code = `VIP-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
-      const { data } = await supabase
+      const digits = Math.floor(9 + Math.random() * 7);
+      let num = "";
+      for (let i = 0; i < digits; i++) num += Math.floor(Math.random() * 10);
+      license_code = `EZ-${num}`;
+      const { data } = await getSupabase()
         .from("licenses")
         .select("id")
         .eq("license_code", license_code)
@@ -238,12 +253,14 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         ? new Date(Date.now() + 36500 * 86400000).toISOString()
         : new Date(Date.now() + duration_days * 86400000).toISOString();
 
-    const { error } = await supabase.from("licenses").insert({
+    const insertData = {
       license_code,
       membership_type,
       expires_at,
       status: "active",
-    });
+    };
+    if (owner != null) insertData.owner = owner;
+    const { error } = await getSupabase().from("licenses").insert(insertData);
 
     if (error) throw error;
     return ok(res, { license_code, expires_at });
@@ -256,7 +273,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
 
 app.post("/api/extend-license", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { license_code, duration_days } = req.body;
+    const { license_code, duration_days, owner: extOwner } = req.body;
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return fail(res, "Invalid license code format");
@@ -266,7 +283,7 @@ app.post("/api/extend-license", adminAuth, adminLimiter, async (req, res) => {
       return fail(res, "Duration must be between 1 and 3650 days");
     }
 
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await getSupabase()
       .from("licenses")
       .select("id, expires_at, status")
       .eq("license_code", license_code)
@@ -282,13 +299,15 @@ app.post("/api/extend-license", adminAuth, adminLimiter, async (req, res) => {
       base.getTime() + duration_days * 86400000
     ).toISOString();
 
-    const { error: updateError } = await supabase
+    const extData = {
+      expires_at: newExpiry,
+      last_used_at: now.toISOString(),
+      status: "active",
+    };
+    if (extOwner != null) extData.owner = extOwner;
+    const { error: updateError } = await getSupabase()
       .from("licenses")
-      .update({
-        expires_at: newExpiry,
-        last_used_at: now.toISOString(),
-        status: "active",
-      })
+      .update(extData)
       .eq("license_code", license_code);
 
     if (updateError) throw updateError;
@@ -309,7 +328,7 @@ app.post("/api/suspend-license", adminAuth, adminLimiter, async (req, res) => {
       return fail(res, "Invalid license code format");
     }
 
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await getSupabase()
       .from("licenses")
       .select("id, status")
       .eq("license_code", license_code)
@@ -321,7 +340,7 @@ app.post("/api/suspend-license", adminAuth, adminLimiter, async (req, res) => {
     const newStatus =
       existing.status === "suspended" ? "active" : "suspended";
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from("licenses")
       .update({ status: newStatus })
       .eq("license_code", license_code);
@@ -348,7 +367,7 @@ app.delete("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
       return fail(res, "Invalid license code format");
     }
 
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await getSupabase()
       .from("licenses")
       .select("id")
       .eq("license_code", license_code)
@@ -357,7 +376,7 @@ app.delete("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
     if (fetchError) throw fetchError;
     if (!existing) return fail(res, "License code not found", 404);
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from("licenses")
       .delete()
       .eq("license_code", license_code);

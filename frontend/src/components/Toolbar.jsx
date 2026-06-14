@@ -8,6 +8,8 @@ export default function Toolbar({
   days,
   phone,
   setPhone,
+  owner,
+  setOwner,
   search,
   setSearch,
   onGenerate,
@@ -15,11 +17,11 @@ export default function Toolbar({
   loading,
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <select
         value={type}
         onChange={(e) => onChangeType(e.target.value)}
-        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
       >
         {typeOptions.map((t) => (
           <option key={t}>{t}</option>
@@ -31,7 +33,7 @@ export default function Toolbar({
           type="number"
           value={days}
           readOnly
-          className="w-16 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm text-slate-500 outline-none"
+          className="w-16 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm text-slate-500 outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400"
         />
       )}
 
@@ -39,7 +41,14 @@ export default function Toolbar({
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         placeholder="Phone (optional, EZ code)"
-        className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+        className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+      />
+
+      <input
+        value={owner}
+        onChange={(e) => setOwner(e.target.value)}
+        placeholder="Owner (optional)"
+        className="w-36 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
       />
 
       <button
@@ -53,7 +62,7 @@ export default function Toolbar({
       <button
         onClick={onTrial}
         disabled={loading}
-        className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
       >
         Trial 1h
       </button>
@@ -73,7 +82,7 @@ export default function Toolbar({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search licenses..."
-          className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
         />
       </div>
     </div>

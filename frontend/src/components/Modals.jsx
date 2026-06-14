@@ -4,15 +4,15 @@ export function ConfirmModal({ state, close }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={close}>
       <div
-        className="mx-4 w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-2xl"
+        className="mx-4 w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold text-slate-900">Confirm</h3>
-        <p className="mt-2 text-sm text-slate-500">{state.msg}</p>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Confirm</h3>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{state.msg}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={() => { state.resolve(false); close(); }}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             Cancel
           </button>
@@ -46,25 +46,25 @@ export function PromptModal({ state, close }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={close}>
       <div
-        className="mx-4 w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-2xl"
+        className="mx-4 w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold text-slate-900">{state.msg}</h3>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{state.msg}</h3>
         <div className="mt-4">
-          <label className="mb-1.5 block text-xs font-medium text-slate-500">Duration (days)</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500 dark:text-slate-400">Duration (days)</label>
           <input
             type="number"
             value={val}
             onChange={(e) => setVal(e.target.value)}
             min={1}
             autoFocus
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
           />
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={() => { state.resolve(null); close(); }}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             Cancel
           </button>

@@ -18,18 +18,18 @@ export default function StatsBar({ stats }) {
       {cards.map(({ key, label, color }) => (
         <div
           key={key}
-          className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+          className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-2xl font-bold tracking-tight text-slate-900">
+              <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                 {stats[key]}
               </p>
               <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-slate-400">
                 {label}
               </p>
             </div>
-            <div className={`rounded-lg p-2 ${key === "total" ? "bg-slate-100" : key === "active" ? "bg-emerald-50" : key === "expired" ? "bg-red-50" : "bg-amber-50"}`}>
+            <div className={`rounded-lg p-2 ${key === "total" ? "bg-slate-100 dark:bg-slate-700" : key === "active" ? "bg-emerald-50 dark:bg-emerald-950" : key === "expired" ? "bg-red-50 dark:bg-red-950" : "bg-amber-50 dark:bg-amber-950"}`}>
               <svg className={`h-4 w-4 ${color}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d={icons[key]} />
               </svg>

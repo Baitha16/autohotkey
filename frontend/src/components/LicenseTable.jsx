@@ -29,6 +29,7 @@ function copyToClipboard(text, add) {
 const columns = [
   { key: "license_code", label: "Code", sortable: true },
   { key: "membership_type", label: "Type", sortable: true },
+  { key: "owner", label: "Owner", sortable: true },
   { key: "expires_at", label: "Expires", sortable: true },
   { key: "last_used_at", label: "Last Used", sortable: true },
   { key: "created_at", label: "Created", sortable: true },
@@ -48,7 +49,8 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
       (l) =>
         l.license_code.toLowerCase().includes(q) ||
         l.membership_type.toLowerCase().includes(q) ||
-        l.status.toLowerCase().includes(q)
+        l.status.toLowerCase().includes(q) ||
+        (l.owner && l.owner.toLowerCase().includes(q))
     );
   }, [licenses, search]);
 
@@ -93,23 +95,23 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
 
   if (!licenses.length) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <p className="text-sm text-slate-400">No licenses yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/50">
+            <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 ${
-                    col.sortable ? "cursor-pointer select-none hover:text-slate-700" : ""
+                  className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 ${
+                    col.sortable ? "cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200" : ""
                   }`}
                   onClick={() => col.sortable && toggleSort(col.key)}
                 >
@@ -120,7 +122,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {sorted.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-slate-400">
@@ -131,16 +133,16 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
               paged.map((l) => (
                 <tr
                   key={l.id}
-                  className="transition-colors hover:bg-indigo-50/40"
+                  className="transition-colors hover:bg-indigo-50/40 dark:hover:bg-indigo-950/30"
                 >
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <button
                       onClick={() => copyToClipboard(l.license_code, add)}
-                      className="group inline-flex items-center gap-1.5 font-mono text-xs text-slate-700 hover:text-indigo-600"
+                      className="group inline-flex items-center gap-1.5 font-mono text-xs text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
                     >
                       {l.license_code}
                       <svg
-                        className="h-3.5 w-3.5 text-slate-300 transition-opacity group-hover:text-indigo-400"
+                        className="h-3.5 w-3.5 text-slate-300 transition-opacity group-hover:text-indigo-400 dark:text-slate-600"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -151,48 +153,51 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       </svg>
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-sm capitalize text-slate-700">
+                  <td className="whitespace-nowrap px-4 py-3 text-sm capitalize text-slate-700 dark:text-slate-300">
                     {l.membership_type}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-700 dark:text-slate-300">
+                    {l.owner || "-"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
                     {l.membership_type === "lifetime"
                       ? "Lifetime"
                       : formatDate(l.expires_at)}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
                     {l.last_used_at ? formatDate(l.last_used_at) : (
-                      <span className="text-slate-300">Never</span>
+                      <span className="text-slate-300 dark:text-slate-600">Never</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
                     {formatDate(l.created_at)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         l.status === "active"
-                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-400 dark:ring-emerald-500/30"
                           : l.status === "expired"
-                            ? "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20"
-                            : "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                            ? "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-950 dark:text-red-400 dark:ring-red-500/30"
+                            : "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950 dark:text-amber-400 dark:ring-amber-500/30"
                       }`}
                     >
                       {l.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <button
                         disabled={l.status === "expired"}
                         onClick={() => onAct(l.license_code, "extend-license", "Extended")}
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-400"
                       >
                         Extend
                       </button>
                       {l.status === "suspended" ? (
                         <button
                           onClick={() => onAct(l.license_code, "suspend-license", "Unsuspended")}
-                          className="rounded-md border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50"
+                          className="rounded-md border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
                         >
                           Unsuspend
                         </button>
@@ -200,14 +205,14 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                         <button
                           disabled={l.status === "expired"}
                           onClick={() => onAct(l.license_code, "suspend-license", "Suspended")}
-                          className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-amber-950 dark:hover:text-amber-400"
                         >
                           Suspend
                         </button>
                       )}
                       <button
                         onClick={() => onAct(l.license_code, "delete-license", "Deleted")}
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-red-950 dark:hover:text-red-400"
                       >
                         Delete
                       </button>
@@ -221,11 +226,11 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-4 py-3">
+        <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-4 py-3 dark:border-slate-700">
           <button
             disabled={page === 0}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             Prev
           </button>
@@ -235,7 +240,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
           <button
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             Next
           </button>

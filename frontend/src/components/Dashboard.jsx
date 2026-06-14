@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { api, clearApiKey } from "../lib/api";
+import { useTheme } from "../lib/theme";
 import Toast from "./Toast";
 import StatsBar from "./StatsBar";
 import Toolbar from "./Toolbar";
@@ -7,11 +8,13 @@ import LicenseTable from "./LicenseTable";
 import { ConfirmModal, PromptModal } from "./Modals";
 
 export default function Dashboard({ onLogout }) {
+  const { dark, toggle: toggleTheme } = useTheme();
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState("monthly");
   const [days, setDays] = useState(30);
   const [phone, setPhone] = useState("");
+  const [owner, setOwner] = useState("");
   const [search, setSearch] = useState("");
   const [toasts, setToasts] = useState([]);
   const [confirmState, setConfirmState] = useState(null);
@@ -70,6 +73,7 @@ export default function Dashboard({ onLogout }) {
     const body = { membership_type: type };
     if (type !== "lifetime") body.duration_days = +days;
     if (phone.trim()) body.phone = phone.trim();
+    if (owner.trim()) body.owner = owner.trim();
     try {
       const d = await api("/api/generate-code", { method: "POST", body: JSON.stringify(body) });
       if (d.success) add(`Generated: ${d.license_code}`);
@@ -124,12 +128,12 @@ export default function Dashboard({ onLogout }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <Toast toasts={toasts} />
       <ConfirmModal state={confirmState} close={() => setConfirmState(null)} />
       <PromptModal state={promptState} close={() => setPromptState(null)} />
 
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-lg">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-lg dark:border-slate-700 dark:bg-slate-900/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 shadow-sm">
@@ -138,16 +142,34 @@ export default function Dashboard({ onLogout }) {
               </svg>
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-slate-900">License Dashboard</h1>
+              <h1 className="text-sm font-semibold text-slate-900 dark:text-slate-100">License Dashboard</h1>
               <p className="text-xs text-slate-400">{licenses.length} total licenses</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="rounded-lg border border-slate-200 p-1.5 text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"
+              title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {dark ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="12" cy="12" r="5" />
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -160,6 +182,8 @@ export default function Dashboard({ onLogout }) {
           days={days}
           phone={phone}
           setPhone={setPhone}
+          owner={owner}
+          setOwner={setOwner}
           search={search}
           setSearch={setSearch}
           onGenerate={generate}
@@ -168,8 +192,8 @@ export default function Dashboard({ onLogout }) {
         />
 
         {loading ? (
-          <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-16 shadow-sm">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
+          <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-16 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500 dark:border-slate-600" />
           </div>
         ) : (
           <LicenseTable

@@ -1,7 +1,7 @@
 export function isValidLicenseCode(code: string): boolean {
   const vip = /^VIP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   const trial = /^TRIAL-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-  const ez = /^EZ-\d{9,15}$/;
+  const ez = /^EZ-\d{9,15}(-[A-Z0-9]{4}-[A-Z0-9]{4})?$/;
   return vip.test(code) || trial.test(code) || ez.test(code);
 }
 

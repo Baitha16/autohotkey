@@ -6,9 +6,11 @@ SetWorkingDir %A_ScriptDir%
 FileEncoding, UTF-8
 
 ; ============= MEMBERSHIP API =============
-; Update BASE_URL after deploying to Vercel
+; >>> Wajib ganti ke HTTPS untuk production! <<<
+; Development:
 BASE_URL := "http://localhost:3000/api"
-; Production example: "https://your-project.vercel.app/api"
+; Production example:
+; BASE_URL := "https://your-project.vercel.app/api"
 
 HttpPost(url, payload) {
     http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
@@ -20,17 +22,25 @@ HttpPost(url, payload) {
 
 Jsons(str) {
     obj := {}
-    pos := 1
-    while (pos := RegExMatch(str, """([^""]+)"":\s*(""([^""]*)""|true|false|null|\d+)", m, pos + StrLen(m))) {
-        k := m1
-        v := m2
-        if (SubStr(v, 1, 1) = """")
-            v := SubStr(v, 2, -1)
-        else if (v = "true")
-            v := true
-        else if (v = "false")
-            v := false
-        obj[k] := v
+    try {
+        doc := ComObjCreate("HTMLfile")
+        doc.write("<script>document.json=" . str . "</script>")
+        val := doc.json
+        if IsObject(val)
+            obj := val
+    } catch {
+        pos := 1
+        while (pos := RegExMatch(str, """([^""]+)"":\s*(""([^""]*)""|true|false|null|[\d.]+)", m, pos + StrLen(m))) {
+            k := m1
+            v := m2
+            if (SubStr(v, 1, 1) = """")
+                v := SubStr(v, 2, -1)
+            else if (v = "true")
+                v := true
+            else if (v = "false")
+                v := false
+            obj[k] := v
+        }
     }
     return obj
 }
@@ -52,34 +62,6 @@ Login(licenseCode) {
     payload := "{""license_code"": """ . licenseCode . """}"
     return Jsons(HttpPost(url, payload))
 }
-
-GenerateCode(membershipType, durationDays) {
-    global BASE_URL
-    url := BASE_URL . "/generate-code"
-    payload := "{""membership_type"": """ . membershipType . """, ""duration_days"": " . durationDays . "}"
-    return Jsons(HttpPost(url, payload))
-}
-
-ExtendLicense(licenseCode, durationDays) {
-    global BASE_URL
-    url := BASE_URL . "/extend-license"
-    payload := "{""license_code"": """ . licenseCode . """, ""duration_days"": " . durationDays . "}"
-    return Jsons(HttpPost(url, payload))
-}
-
-SuspendLicense(licenseCode) {
-    global BASE_URL
-    url := BASE_URL . "/suspend-license"
-    payload := "{""license_code"": """ . licenseCode . """}"
-    return Jsons(HttpPost(url, payload))
-}
-
-DeleteLicense(licenseCode) {
-    global BASE_URL
-    url := BASE_URL . "/delete-license"
-    payload := "{""license_code"": """ . licenseCode . """}"
-    return Jsons(HttpPost(url, payload))
-}
 ; ============= END MEMBERSHIP API =============
 
 ; ============= LOGIN GUI =============
@@ -94,10 +76,10 @@ return
 
 LicenseKeyCheck:
     Gui, Submit, Nohide
-    if (RegExMatch(LicenseInput, "^(VIP|TRIAL)-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$") || RegExMatch(LicenseInput, "^EZ-\d{9,15}$")) {
+    if (RegExMatch(LicenseInput, "^(VIP|TRIAL)-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$") || RegExMatch(LicenseInput, "^EZ-\d{9,15}(-[A-Z0-9]{4}-[A-Z0-9]{4})?$")) {
         GuiControl,, LoginStatus
     } else {
-        GuiControl,, LoginStatus, Invalid format (VIP-XXXX-XXXX-XXXX / EZ-[phone])
+        GuiControl,, LoginStatus, Invalid format (VIP/TRIAL-XXXX-XXXX-XXXX / EZ-[phone])
     }
 return
 
@@ -108,7 +90,7 @@ return
 DoLogin:
     Gui, Submit, Nohide
     Gui, +OwnDialogs
-    if !RegExMatch(LicenseInput, "^(VIP|TRIAL)-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$") && !RegExMatch(LicenseInput, "^EZ-\d{9,15}$") {
+    if !RegExMatch(LicenseInput, "^(VIP|TRIAL)-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$") && !RegExMatch(LicenseInput, "^EZ-\d{9,15}(-[A-Z0-9]{4}-[A-Z0-9]{4})?$") {
         MsgBox, Invalid license code format.
         return
     }
@@ -130,7 +112,13 @@ DoLogin:
 return
 
 MainGui:
-masked := SubStr(gLicenseCode, 1, 4) . "-XXXX-XXXX-" . SubStr(gLicenseCode, -4)
+masked := gLicenseCode
+if RegExMatch(gLicenseCode, "^EZ-\d{9,15}$")
+    masked := "EZ-XXXX"
+else if RegExMatch(gLicenseCode, "^EZ-\d{9,15}-[A-Z0-9]{4}-[A-Z0-9]{4}$")
+    masked := SubStr(gLicenseCode, 1, 3) . "XXXX-XXXX-XXXX"
+else
+    masked := SubStr(gLicenseCode, 1, 4) . "-XXXX-XXXX-" . SubStr(gLicenseCode, -4)
 Gui, New, +AlwaysOnTop +Resize +MinSize400x460
 
 ; === Dashboard Bar ===

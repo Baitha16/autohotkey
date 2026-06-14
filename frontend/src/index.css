@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+@layer base {
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+
+  .dark body,
+  body.dark {
+    @apply bg-slate-900 text-slate-100;
+  }
 }
