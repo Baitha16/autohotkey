@@ -153,26 +153,26 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       </svg>
                     </button>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm capitalize text-slate-700 dark:text-slate-300">
+                  <td className="px-4 py-3 text-sm capitalize text-slate-700 dark:text-slate-300">
                     {l.membership_type}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-700 dark:text-slate-300">
+                  <td className="px-4 py-3 text-xs text-slate-700 dark:text-slate-300">
                     {l.owner || "-"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-slate-500">
                     {l.membership_type === "lifetime"
                       ? "Lifetime"
                       : formatDate(l.expires_at)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-slate-500">
                     {l.last_used_at ? formatDate(l.last_used_at) : (
                       <span className="text-slate-300 dark:text-slate-600">Never</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-slate-500">
                     {formatDate(l.created_at)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         l.status === "active"
@@ -185,7 +185,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       {l.status}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <button
                         disabled={l.status === "expired"}

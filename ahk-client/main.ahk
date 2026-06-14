@@ -13,11 +13,15 @@ BASE_URL := "http://localhost:3000/api"
 ; BASE_URL := "https://your-project.vercel.app/api"
 
 HttpPost(url, payload) {
-    http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-    http.Open("POST", url, false)
-    http.SetRequestHeader("Content-Type", "application/json")
-    http.Send(payload)
-    return http.ResponseText
+    try {
+        http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        http.Open("POST", url, false)
+        http.SetRequestHeader("Content-Type", "application/json")
+        http.Send(payload)
+        return http.ResponseText
+    } catch e {
+        return "{""success"": false, ""error"": ""Connection failed: " . e.Message . """}"
+    }
 }
 
 Jsons(str) {
@@ -54,6 +58,29 @@ FmtDate(iso) {
     h := SubStr(iso, 12, 2)
     i := SubStr(iso, 15, 2)
     return d "/" m "/" y " " h ":" i
+}
+
+TransposeNote(keys, offset) {
+    if (offset = 0)
+        return keys
+    scale := "CDEFGAB"
+    result := ""
+    Loop, Parse, keys
+    {
+        ch := A_LoopField
+        pos := InStr(scale, ch)
+        if (pos) {
+            pos += offset
+            while (pos < 1)
+                pos += 7
+            while (pos > 7)
+                pos -= 7
+            result .= SubStr(scale, pos, 1)
+        } else {
+            result .= ch
+        }
+    }
+    return result
 }
 
 Login(licenseCode) {
@@ -100,6 +127,7 @@ DoLogin:
         gLicenseCode := LicenseInput
         gMembershipType := result.membership_type
         gExpiresAt := result.expires_at
+        gOwner := result.owner
         expiryDisplay := FmtDate(gExpiresAt)
         if (gMembershipType = "lifetime")
             expiryDisplay := "Never"
@@ -124,14 +152,23 @@ Gui, New, +AlwaysOnTop +Resize +MinSize400x460
 ; === Dashboard Bar ===
 Gui, Font, s8, Segoe UI
 Gui, Add, Text, x10 y8 cGreen, [%gMembershipType%]
-Gui, Add, Text, x110 y8, License: %masked%
+licenseY := 8
+if (gOwner) {
+    Gui, Add, Text, x110 y8, Owner: %gOwner%
+    licenseY := 22
+}
+Gui, Add, Text, x110 y%licenseY%, License: %masked%
 expiryDisplay := FmtDate(gExpiresAt)
 if (gMembershipType = "lifetime")
     expiryDisplay := "Never"
-Gui, Add, Text, x320 y8, Expires: %expiryDisplay%
+Gui, Add, Text, x320 y%licenseY%, Expires: %expiryDisplay%
 
 ; === Title ===
 Gui, Add, Text, cBlue Center w620 x10 y28, Roblox Virtual Piano Autoplayer by Ezio
+
+; === Auto-logout when expired ===
+SetTimer, CheckLicense, 60000
+gosub CheckLicense
 
 ; === Transpose ===
 Gui, Add, Text, x20 y55, Transpose:
@@ -156,13 +193,14 @@ Gui, Add, Edit, ReadOnly x20 y350 w580 h60 vNextNotes
 ; === Progress Bar ===
 Gui, Add, Progress, x20 y420 w580 h20 BackgroundFFFFFF cGreen vProgressBar
 
-; === Tempo ===
-Gui, Add, Checkbox, x20 y450 vAutoMode, Auto Tempo
-Gui, Add, Slider, x120 y447 w150 vTempoValue Range10-500 TickInterval50 ToolTip, 120
+; === Delay ===
+Gui, Add, Checkbox, x20 y450 vAutoMode, Auto Play
+Gui, Add, Slider, x120 y447 w150 vKeyDelay Range10-500 TickInterval50 ToolTip, 120
+Gui, Add, Text, x280 y450, Delay (ms)
 
 ; === How to use ===
 Gui, Add, Text, x20 y480, How to use:
-Gui, Add, Text, x40 y500, Auto: Check box and adjust Tempo, press F5 to Play/Stop
+Gui, Add, Text, x40 y500, Auto: Check box and adjust Delay, press F5 to Play/Stop
 Gui, Add, Text, x40 y520, Manual: Press arrow keys to play with rhythm
 
 ; === Buttons ===
@@ -190,7 +228,7 @@ Gui, Show, w680 h610, Roblox Virtual Piano Autoplayer
 PianoMusic := ""
 Lyrics := ""
 TransposeValue := 0
-TempoValue := 120
+KeyDelay := 120
 CurrentPos := 1
 DisplayPos := 1
 KeyDelay := 120
@@ -199,7 +237,7 @@ LoadedFile := ""
 
 ; ============= FUNCTIONS =============
 PlayNextNote() {
-    global PianoMusic, CurrentPos, DisplayPos, KeyDelay, isPlaying
+    global PianoMusic, CurrentPos, DisplayPos, KeyDelay, isPlaying, TransposeValue
 
     if (!isPlaying)
         return
@@ -225,6 +263,7 @@ PlayNextNote() {
             DisplayPos += StrLen(Keys)
 
             Keys := Trim(Keys, "[]")
+            Keys := TransposeNote(Keys, TransposeValue)
             SendInput, {Raw}%Keys%
 
             NextNotes := SubStr(RegExReplace(DisplayMusic, "-|,|\."), DisplayPos, 150)
@@ -261,7 +300,6 @@ TogglePlayStop:
         isPlaying := true
         GuiControl,, TogglePlayStopButton, Pause
         if (AutoMode) {
-            KeyDelay := TempoValue
             SetTimer, AutoPlay, 10
         }
     } else {
@@ -282,11 +320,11 @@ ClearAll:
     PianoMusic := ""
     Lyrics := ""
     TransposeValue := 0
-    TempoValue := 120
+    KeyDelay := 120
     GuiControl,, PianoMusic
     GuiControl,, Lyrics
     GuiControl,, TransposeValue, 0
-    GuiControl,, TempoValue, 120
+    GuiControl,, KeyDelay, 120
     GuiControl,, NextNotes
     GuiControl,, ProgressBar, 0
     GuiControl,, FileName, [No file loaded]
@@ -303,7 +341,7 @@ SaveSheet:
         if !InStr(savePath, ".txt")
             savePath .= ".txt"
         PianoMusic := RegExReplace(PianoMusic, "-|,|\.")
-        content := "[Transpose]" . TransposeValue . "`n[Tempo]" . TempoValue . "`n[Sheet]`n" . Trim(PianoMusic, "`r`n ") . "`n[Lyrics]`n" . Trim(Lyrics, "`r`n ")
+        content := "[Transpose]" . TransposeValue . "`n[Delay]" . KeyDelay . "`n[Sheet]`n" . Trim(PianoMusic, "`r`n ") . "`n[Lyrics]`n" . Trim(Lyrics, "`r`n ")
         FileDelete, %savePath%
         FileAppend, %content%, %savePath%
         LoadedFile := savePath
@@ -317,13 +355,13 @@ LoadSheet:
     if (loadPath != "") {
         FileRead, fileContent, %loadPath%
         TransposeValue := RegExReplace(fileContent, "s).*\[Transpose\](-?\d+).*", "$1")
-        TempoValue := RegExReplace(fileContent, "s).*\[Tempo\](\d+).*", "$1")
+        KeyDelay := RegExReplace(fileContent, "s).*\[Delay\](\d+).*", "$1")
         if (TransposeValue < -24)
             TransposeValue := -24
         if (TransposeValue > 24)
             TransposeValue := 24
-        if (TempoValue < 10)
-            TempoValue := 10
+        if (KeyDelay < 10)
+            KeyDelay := 10
         PianoMusic := RegExReplace(fileContent, "s).*\[Sheet\](.*?)\[Lyrics\].*", "$1")
         Lyrics := RegExReplace(fileContent, "s).*\[Lyrics\](.*)", "$1")
         PianoMusic := RegExReplace(PianoMusic, "-|,|\.")
@@ -333,7 +371,7 @@ LoadSheet:
         GuiControl,, PianoMusic, %PianoMusic%
         GuiControl,, Lyrics, %Lyrics%
         GuiControl,, TransposeValue, %TransposeValue%
-        GuiControl,, TempoValue, %TempoValue%
+        GuiControl,, KeyDelay, %KeyDelay%
 
         CurrentPos := 1
         DisplayPos := 1
@@ -350,6 +388,16 @@ SheetChanged:
     Gui, Submit, Nohide
     PianoMusic := RegExReplace(PianoMusic, "-|,|\.")
     GuiControl,, PianoMusic, %PianoMusic%
+return
+
+CheckLicense:
+    result := Login(gLicenseCode)
+    if (!result.success) {
+        SetTimer, CheckLicense, Off
+        Gui, Destroy
+        MsgBox, 48, License Expired, Your license has expired or been suspended.`n`n%result.error%
+        ExitApp
+    }
 return
 
 GuiClose:
