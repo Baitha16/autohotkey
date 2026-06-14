@@ -12,6 +12,8 @@ import {
 } from "../src/validators/license.js";
 
 const app = express();
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
 app.use(cors());
 app.use(express.json({ limit: "16kb" }));
