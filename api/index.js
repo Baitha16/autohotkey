@@ -60,32 +60,28 @@ const trialLimiter = rateLimit({
   message: { success: false, error: "Too many trial requests" },
 });
 
-/* ---------- PUBLIC: verify-license (FORCE UPDATE ENGINE) ---------- */
+/* ---------- PUBLIC: verify-license ---------- */
 
 app.post("/api/verify-license", async (req, res) => {
   try {
-    const { license_code, hwid } = req.body;
+    const { license_code } = req.body;
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return fail(res, "Invalid license code format");
     }
 
-    if (!hwid || hwid.trim() === "" || hwid === "UNKNOWN_DEVICE") {
-      return fail(res, "Gagal memverifikasi identitas perangkat komputer Anda.");
-    }
-
-    // 1. Ambil data lisensi saat ini
-    const { data, error: fetchError } = await getSupabase()
+    const { data, error } = await getSupabase()
       .from("licenses")
-      .select("license_code, membership_type, expires_at, status, owner, hwid")
+      .select("license_code, membership_type, expires_at, status, owner")
       .eq("license_code", license_code)
       .maybeSingle();
 
-    if (fetchError) return fail(res, `Database error (Fetch): ${fetchError.message}`, 500);
-    if (!data) return fail(res, "Kode lisensi tidak terdaftar di database kami.", 404);
+    if (error) throw error;
+
+    if (!data) return fail(res, "License code not found", 404);
 
     if (data.status !== "active") {
-      return fail(res, `Lisensi tidak aktif. Status saat ini: ${data.status}`, 403);
+      return fail(res, `License is ${data.status}`, 403);
     }
 
     const now = new Date();
@@ -97,41 +93,13 @@ app.post("/api/verify-license", async (req, res) => {
         .update({ status: "expired" })
         .eq("license_code", license_code);
 
-      return fail(res, "Masa aktif lisensi ini telah berakhir (Expired).", 403);
+      return fail(res, "License has expired", 403);
     }
 
-    /* --- LOGIKA LOCK HWID AGRESIF DENGAN VERIFIKASI BALIK --- */
-    const cleanHwid = String(hwid).trim();
-
-    if (!data.hwid || data.hwid.trim() === "" || data.hwid === null) {
-      // Jika kolom HWID kosong, paksa update dan ikat perangkat ini
-      const { data: updateData, error: updateError } = await getSupabase()
-        .from("licenses")
-        .update({ 
-          hwid: cleanHwid, 
-          last_used_at: now.toISOString() 
-        })
-        .eq("license_code", license_code)
-        .select(); // Memaksa Supabase mengembalikan baris yang di-update untuk verifikasi
-
-      if (updateError) {
-        return fail(res, `Supabase RLS Error: Gagal mengunci HWID ke tabel. Pesan: ${updateError.message}`, 500);
-      }
-      
-      // Jika hasil select kosong, berarti RLS memblokir aksi update secara diam-diam
-      if (!updateData || updateData.length === 0) {
-        return fail(res, "Sistem keamanan Supabase (RLS) memblokir penyimpanan HWID. Harap periksa kebijakan RLS UPDATE di Supabase Anda.", 500);
-      }
-    } else if (data.hwid.trim() !== cleanHwid) {
-      // Jika HWID tidak cocok dengan yang terdaftar di database
-      return fail(res, "Lisensi ini tidak dapat digunakan di perangkat ini karena sudah terkunci di komputer lain.", 403);
-    } else {
-      // Jika HWID cocok, perbarui jejak timestamp penggunaan
-      await getSupabase()
-        .from("licenses")
-        .update({ last_used_at: now.toISOString() })
-        .eq("license_code", license_code);
-    }
+    await getSupabase()
+      .from("licenses")
+      .update({ last_used_at: now.toISOString() })
+      .eq("license_code", license_code);
 
     return ok(res, {
       membership_type: data.membership_type,
@@ -139,7 +107,7 @@ app.post("/api/verify-license", async (req, res) => {
       owner: data.owner,
     });
   } catch (err) {
-    return fail(res, err.message || "Internal server error", 500);
+    return fail(res, err.message || "Internal error", 500);
   }
 });
 
@@ -347,38 +315,6 @@ app.post("/api/extend-license", adminAuth, adminLimiter, async (req, res) => {
     if (updateError) throw updateError;
 
     return ok(res, { license_code, expires_at: newExpiry });
-  } catch (err) {
-    return fail(res, err.message || "Internal error", 500);
-  }
-});
-
-/* ---------- ADMIN: reset-hwid ---------- */
-
-app.post("/api/reset-hwid", adminAuth, adminLimiter, async (req, res) => {
-  try {
-    const { license_code } = req.body;
-
-    if (!license_code || !isValidLicenseCode(license_code)) {
-      return fail(res, "Invalid license code format");
-    }
-
-    const { data: existing, error: fetchError } = await getSupabase()
-      .from("licenses")
-      .select("id")
-      .eq("license_code", license_code)
-      .maybeSingle();
-
-    if (fetchError) throw fetchError;
-    if (!existing) return fail(res, "License code not found", 404);
-
-    const { error } = await getSupabase()
-      .from("licenses")
-      .update({ hwid: null })
-      .eq("license_code", license_code);
-
-    if (error) throw error;
-
-    return ok(res, { message: "Hardware ID has been successfully reset. User can login from a new device." });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
   }
