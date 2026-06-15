@@ -39,7 +39,6 @@ function fail(res, error, status = 400) {
 
 function adminAuth(req, res, next) {
   const key = req.headers["x-api-key"];
-  console.log("DEBUG adminAuth: key=", key, "| expected=", process.env.ADMIN_KEY);
   if (!key || key !== process.env.ADMIN_KEY) {
     return fail(res, "Unauthorized", 401);
   }
@@ -60,28 +59,45 @@ const trialLimiter = rateLimit({
   message: { success: false, error: "Too many trial requests" },
 });
 
-/* ---------- PUBLIC: verify-license ---------- */
+/* ---------- PUBLIC: verify-license (UPDATED DENGAN HWID) ---------- */
 
 app.post("/api/verify-license", async (req, res) => {
   try {
-    const { license_code } = req.body;
+    const { license_code, hwid } = req.body;
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return fail(res, "Invalid license code format");
     }
 
+    if (!hwid) {
+      return fail(res, "HWID is required for verification");
+    }
+
+    // Mengambil data lisensi termasuk kolom hwid
     const { data, error } = await getSupabase()
       .from("licenses")
-      .select("license_code, membership_type, expires_at, status, owner")
+      .select("license_code, membership_type, expires_at, status, owner, hwid")
       .eq("license_code", license_code)
       .maybeSingle();
 
     if (error) throw error;
-
     if (!data) return fail(res, "License code not found", 404);
-
     if (data.status !== "active") {
       return fail(res, `License is ${data.status}`, 403);
+    }
+
+    // LOGIKA PENGIKATAN HWID
+    let boundHwid = data.hwid;
+    if (!boundHwid) {
+      // Jika HWID masih kosong, ikat HWID pertama kali perangkat login
+      await getSupabase()
+        .from("licenses")
+        .update({ hwid: hwid })
+        .eq("license_code", license_code);
+      boundHwid = hwid;
+    } else if (boundHwid !== hwid) {
+      // Jika HWID berbeda dengan yang tersimpan, tolak akses!
+      return fail(res, "License is already bound to another device", 403);
     }
 
     const now = new Date();
@@ -92,7 +108,6 @@ app.post("/api/verify-license", async (req, res) => {
         .from("licenses")
         .update({ status: "expired" })
         .eq("license_code", license_code);
-
       return fail(res, "License has expired", 403);
     }
 
@@ -105,6 +120,7 @@ app.post("/api/verify-license", async (req, res) => {
       membership_type: data.membership_type,
       expires_at: data.expires_at,
       owner: data.owner,
+      hwid: boundHwid
     });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
@@ -138,6 +154,7 @@ app.post("/api/generate-trial", trialLimiter, async (req, res) => {
       membership_type: "trial",
       expires_at,
       status: "active",
+      hwid: null // Trial awal belum terikat HWID
     };
     const { owner: trialOwner } = req.body;
     if (trialOwner != null) trialData.owner = trialOwner;
@@ -224,6 +241,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         membership_type,
         expires_at: newExpiry,
         status: "active",
+        hwid: null // Belum terikat HWID saat digenerate admin
       };
       if (owner != null) insertData.owner = owner;
       const { error } = await getSupabase().from("licenses").insert(insertData);
@@ -260,6 +278,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       membership_type,
       expires_at,
       status: "active",
+      hwid: null // Belum terikat HWID saat digenerate admin
     };
     if (owner != null) insertData.owner = owner;
     const { error } = await getSupabase().from("licenses").insert(insertData);
@@ -354,6 +373,29 @@ app.post("/api/suspend-license", adminAuth, adminLimiter, async (req, res) => {
       status: newStatus,
       message: `License ${newStatus === "active" ? "unsuspended" : "suspended"}`,
     });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: reset-hwid (BARU) ---------- */
+
+app.post("/api/reset-hwid", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { license_code } = req.body;
+
+    if (!license_code || !isValidLicenseCode(license_code)) {
+      return fail(res, "Invalid license code format");
+    }
+
+    const { error } = await getSupabase()
+      .from("licenses")
+      .update({ hwid: null })
+      .eq("license_code", license_code);
+
+    if (error) throw error;
+
+    return ok(res, { message: "HWID reset successfully" });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
   }

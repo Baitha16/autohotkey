@@ -95,6 +95,7 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  // FUNGSI AKSI YANG DIKIRIM KE LICENSE TABLE
   const act = async (code, endpoint, successMsg) => {
     if (endpoint === "delete-license") {
       const ok = await confirm(`Delete license ${code}? This cannot be undone.`, true);
@@ -104,6 +105,11 @@ export default function Dashboard({ onLogout }) {
       const ok = await confirm(`Toggle suspend for license ${code}?`, false);
       if (!ok) return;
     }
+    if (endpoint === "reset-hwid") {
+      const ok = await confirm(`Reset HWID limit for license ${code}? This allows the user to log in on a new PC.`, false);
+      if (!ok) return;
+    }
+
     let body = { license_code: code };
     if (endpoint === "extend-license") {
       const d = await prompt(`Extend license ${code}`, "30");
