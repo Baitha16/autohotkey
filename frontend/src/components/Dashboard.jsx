@@ -44,21 +44,23 @@ export default function Dashboard({ onLogout }) {
     else if (t === "weekly") setDays(7);
   };
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const d = await api("/api/licenses");
       if (d.success) setLicenses(d.data);
-      else add(d.error, true);
+      else if (!silent) add(d.error, true);
     } catch (e) {
-      add(e.message, true);
+      if (!silent) add(e.message, true);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [add]);
 
   useEffect(() => {
     load();
+    const id = setInterval(() => load(true), 10000);
+    return () => clearInterval(id);
   }, [load]);
 
   const stats = useMemo(() => {
