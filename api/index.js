@@ -199,6 +199,11 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       return fail(res, "Duration must be between 1 and 3650 days");
     }
 
+    const prefix =
+      membership_type === "weekly" ? "WL" :
+      membership_type === "monthly" ? "ML" :
+      "LT";
+
     const phoneStr = phone != null ? String(phone).trim() : "";
     const useEZ = phoneStr !== "";
     if (useEZ && !isValidPhone(phoneStr)) {
@@ -208,7 +213,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
     let license_code;
 
     if (useEZ) {
-      license_code = `EZ-${phoneStr}`;
+      license_code = `${prefix}-${phoneStr}`;
       const newExpiry =
         membership_type === "lifetime"
           ? new Date(Date.now() + 36500 * 86400000).toISOString()
@@ -249,11 +254,6 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       if (error) throw error;
       return ok(res, { license_code, expires_at: newExpiry });
     }
-
-    const prefix =
-      membership_type === "weekly" ? "WL" :
-      membership_type === "monthly" ? "ML" :
-      "LT";
 
     let attempts = 0;
     while (true) {

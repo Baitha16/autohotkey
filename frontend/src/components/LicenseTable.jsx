@@ -3,6 +3,10 @@ import { api } from "../lib/api";
 
 const PAGE_SIZE = 15;
 
+function isExpired(expiresAt) {
+  return !expiresAt || new Date(expiresAt).getTime() <= Date.now();
+}
+
 function CountdownCell({ expiresAt, type }) {
   if (type === "lifetime") return <span>Lifetime</span>;
   if (!expiresAt) return <span className="text-slate-300 dark:text-slate-600">-</span>;
@@ -30,6 +34,39 @@ function CountdownCell({ expiresAt, type }) {
   return (
     <span className="font-mono text-xs tabular-nums">
       {time.d > 0 && `${time.d}d `}{time.h}h {time.m}m {time.s}s
+    </span>
+  );
+}
+
+function StatusCell({ expiresAt, type, status }) {
+  const [now, setNow] = useState(Date.now);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (status === "suspended") {
+    return (
+      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950 dark:text-amber-400 dark:ring-amber-500/30">
+        suspended
+      </span>
+    );
+  }
+
+  const expired = type !== "lifetime" && (!expiresAt || new Date(expiresAt).getTime() <= now);
+
+  if (expired) {
+    return (
+      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-950 dark:text-red-400 dark:ring-red-500/30">
+        expired
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-400 dark:ring-emerald-500/30">
+      active
     </span>
   );
 }
@@ -134,8 +171,8 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="min-w-[1000px]">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
@@ -203,17 +240,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                     {formatDate(l.created_at)}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        l.status === "active"
-                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-400 dark:ring-emerald-500/30"
-                          : l.status === "expired"
-                            ? "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-950 dark:text-red-400 dark:ring-red-500/30"
-                            : "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950 dark:text-amber-400 dark:ring-amber-500/30"
-                      }`}
-                    >
-                      {l.status}
-                    </span>
+                    <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
                   </td>
                   <td className="px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400 max-w-[120px] truncate" title={l.hwid || ""}>
                     {l.hwid || <span className="text-slate-300 dark:text-slate-600">-</span>}

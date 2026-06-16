@@ -29,6 +29,11 @@ serve(async (req) => {
       );
     }
 
+    const prefix =
+      membership_type === "weekly" ? "WL" :
+      membership_type === "monthly" ? "ML" :
+      "LT";
+
     const useEZ = phone !== undefined && phone !== null && phone !== "";
     if (useEZ && !isValidPhone(phone)) {
       return new Response(
@@ -40,7 +45,7 @@ serve(async (req) => {
     let license_code: string;
 
     if (useEZ) {
-      license_code = `EZ-${phone}`;
+      license_code = `${prefix}-${phone}`;
       const expires_at = membership_type === "lifetime"
         ? new Date(Date.now() + 36500 * 86400000).toISOString()
         : new Date(Date.now() + duration_days * 86400000).toISOString();
@@ -72,11 +77,6 @@ serve(async (req) => {
         );
       }
     } else {
-      const prefix =
-        membership_type === "weekly" ? "WL" :
-        membership_type === "monthly" ? "ML" :
-        "LT";
-
       let attempts = 0;
       while (true) {
         const r1 = randomGroup();
