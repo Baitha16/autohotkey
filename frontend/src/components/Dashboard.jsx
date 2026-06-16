@@ -179,7 +179,7 @@ export default function Dashboard({ onLogout }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6">
         <StatsBar stats={stats} />
 
         <Toolbar

@@ -172,22 +172,21 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <div className="min-w-[1000px]">
+      <div className="min-w-[1400px]">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
               {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 ${
-                    col.sortable ? "cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200" : ""
-                  }`}
-                  onClick={() => col.sortable && toggleSort(col.key)}
-                >
-                  {col.sortIcon && <span className="mr-1"></span>}
-                  {col.label}
-                  {sortIcon(col.key)}
-                </th>
+                  <th
+                    key={col.key}
+                    className={`px-3 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap ${
+                      col.sortable ? "cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200" : ""
+                    }`}
+                    onClick={() => col.sortable && toggleSort(col.key)}
+                  >
+                    {col.label}
+                    {sortIcon(col.key)}
+                  </th>
               ))}
             </tr>
           </thead>
@@ -222,50 +221,50 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       </svg>
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-sm capitalize text-slate-700 dark:text-slate-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-sm capitalize text-slate-700 dark:text-slate-300">
                     {l.membership_type}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-700 dark:text-slate-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700 dark:text-slate-300">
                     {l.owner || "-"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                     <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                     {l.last_used_at ? formatDate(l.last_used_at) : (
                       <span className="text-slate-300 dark:text-slate-600">Never</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                     {formatDate(l.created_at)}
                   </td>
                   <td className="px-4 py-3">
                     <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
                   </td>
-                  <td className="px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400 max-w-[120px] truncate" title={l.hwid || ""}>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">
                     {l.hwid || <span className="text-slate-300 dark:text-slate-600">-</span>}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-1">
                       <button
                         disabled={l.status === "expired"}
                         onClick={() => onAct(l.license_code, "extend-license", "Extended")}
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-400"
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-400"
                       >
                         Extend
                       </button>
                       {l.hwid && (
                         <button
                           onClick={() => onAct(l.license_code, "reset-hwid", "HWID Reset")}
-                          className="rounded-md border border-orange-200 px-2.5 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
+                          className="rounded-md border border-orange-200 px-2 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
                         >
-                          Reset HWID
+                          HWID
                         </button>
                       )}
                       {l.status === "suspended" ? (
                         <button
                           onClick={() => onAct(l.license_code, "suspend-license", "Unsuspended")}
-                          className="rounded-md border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                          className="rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
                         >
                           Unsuspend
                         </button>
@@ -273,14 +272,14 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                         <button
                           disabled={l.status === "expired"}
                           onClick={() => onAct(l.license_code, "suspend-license", "Suspended")}
-                          className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-amber-950 dark:hover:text-amber-400"
+                          className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-amber-950 dark:hover:text-amber-400"
                         >
                           Suspend
                         </button>
                       )}
                       <button
                         onClick={() => onAct(l.license_code, "delete-license", "Deleted")}
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-red-950 dark:hover:text-red-400"
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-red-950 dark:hover:text-red-400"
                       >
                         Delete
                       </button>
