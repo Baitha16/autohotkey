@@ -10,6 +10,8 @@ export default function Toolbar({
   setPhone,
   owner,
   setOwner,
+  trialHours,
+  setTrialHours,
   search,
   setSearch,
   onGenerate,
@@ -59,13 +61,24 @@ export default function Toolbar({
         Generate
       </button>
 
-      <button
-        onClick={onTrial}
-        disabled={loading}
-        className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
-      >
-        Trial 1h
-      </button>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="number"
+          value={trialHours}
+          onChange={(e) => setTrialHours(Math.max(1, Math.min(720, +e.target.value || 1)))}
+          min="1"
+          max="720"
+          className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+        />
+        <span className="text-xs text-slate-400 dark:text-slate-500">h</span>
+        <button
+          onClick={onTrial}
+          disabled={loading}
+          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
+        >
+          Trial
+        </button>
+      </div>
 
       <div className="relative ml-auto min-w-[180px] flex-1 sm:flex-initial">
         <svg
