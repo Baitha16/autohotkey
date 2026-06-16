@@ -10,8 +10,8 @@ export default function Toolbar({
   setPhone,
   owner,
   setOwner,
-  trialHours,
-  setTrialHours,
+  trialMinutes,
+  setTrialMinutes,
   search,
   setSearch,
   onGenerate,
@@ -64,13 +64,13 @@ export default function Toolbar({
       <div className="flex items-center gap-1.5">
         <input
           type="number"
-          value={trialHours}
-          onChange={(e) => setTrialHours(Math.max(1, Math.min(720, +e.target.value || 1)))}
+          value={trialMinutes}
+          onChange={(e) => setTrialMinutes(Math.max(1, Math.min(43200, +e.target.value || 1)))}
           min="1"
-          max="720"
-          className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+          max="43200"
+          className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
         />
-        <span className="text-xs text-slate-400 dark:text-slate-500">h</span>
+        <span className="text-xs text-slate-400 dark:text-slate-500">min</span>
         <button
           onClick={onTrial}
           disabled={loading}

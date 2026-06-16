@@ -148,8 +148,8 @@ app.post("/api/generate-trial", trialLimiter, async (req, res) => {
       }
     }
 
-    const trialHours = Math.max(1, Math.min(720, parseInt(req.body.trial_hours) || 1));
-    const expires_at = new Date(Date.now() + trialHours * 3600000).toISOString();
+    const trialMinutes = Math.max(1, Math.min(43200, parseInt(req.body.trial_minutes) || 60));
+    const expires_at = new Date(Date.now() + trialMinutes * 60000).toISOString();
     const trialData = {
       license_code,
       membership_type: "trial",

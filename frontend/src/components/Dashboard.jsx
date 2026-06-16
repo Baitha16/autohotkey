@@ -15,7 +15,7 @@ export default function Dashboard({ onLogout }) {
   const [days, setDays] = useState(30);
   const [phone, setPhone] = useState("");
   const [owner, setOwner] = useState("");
-  const [trialHours, setTrialHours] = useState(1);
+  const [trialMinutes, setTrialMinutes] = useState(60);
   const [search, setSearch] = useState("");
   const [toasts, setToasts] = useState([]);
   const [confirmState, setConfirmState] = useState(null);
@@ -89,8 +89,11 @@ export default function Dashboard({ onLogout }) {
 
   const genTrial = async () => {
     try {
-      const d = await api("/api/generate-trial", { method: "POST", body: JSON.stringify({ trial_hours: trialHours }) });
-      if (d.success) add(`Trial (${trialHours}h): ${d.license_code}`);
+      const d = await api("/api/generate-trial", { method: "POST", body: JSON.stringify({ trial_minutes: trialMinutes }) });
+      const hrs = Math.floor(trialMinutes / 60);
+      const mins = trialMinutes % 60;
+      const label = hrs > 0 ? `${hrs}h${mins > 0 ? ` ${mins}m` : ""}` : `${mins}m`;
+      if (d.success) add(`Trial (${label}): ${d.license_code}`);
       else add(d.error, true);
       load();
     } catch (e) {
@@ -193,8 +196,8 @@ export default function Dashboard({ onLogout }) {
           setPhone={setPhone}
           owner={owner}
           setOwner={setOwner}
-          trialHours={trialHours}
-          setTrialHours={setTrialHours}
+          trialMinutes={trialMinutes}
+          setTrialMinutes={setTrialMinutes}
           search={search}
           setSearch={setSearch}
           onGenerate={generate}
