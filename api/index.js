@@ -250,12 +250,14 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       return ok(res, { license_code, expires_at: newExpiry });
     }
 
+    const prefix =
+      membership_type === "weekly" ? "WL" :
+      membership_type === "monthly" ? "ML" :
+      "LT";
+
     let attempts = 0;
     while (true) {
-      const digits = Math.floor(9 + Math.random() * 7);
-      let num = "";
-      for (let i = 0; i < digits; i++) num += Math.floor(Math.random() * 10);
-      license_code = `EZ-${num}`;
+      license_code = `${prefix}-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
       const { data } = await getSupabase()
         .from("licenses")
         .select("id")

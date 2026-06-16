@@ -72,12 +72,17 @@ serve(async (req) => {
         );
       }
     } else {
+      const prefix =
+        membership_type === "weekly" ? "WL" :
+        membership_type === "monthly" ? "ML" :
+        "LT";
+
       let attempts = 0;
       while (true) {
         const r1 = randomGroup();
         const r2 = randomGroup();
         const r3 = randomGroup();
-        license_code = `VIP-${r1}-${r2}-${r3}`;
+        license_code = `${prefix}-${r1}-${r2}-${r3}`;
 
         const { data } = await supabase
           .from("licenses")

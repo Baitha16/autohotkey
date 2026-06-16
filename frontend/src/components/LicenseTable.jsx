@@ -3,6 +3,37 @@ import { api } from "../lib/api";
 
 const PAGE_SIZE = 15;
 
+function CountdownCell({ expiresAt, type }) {
+  if (type === "lifetime") return <span>Lifetime</span>;
+  if (!expiresAt) return <span className="text-slate-300 dark:text-slate-600">-</span>;
+
+  const calc = () => {
+    const diff = new Date(expiresAt).getTime() - Date.now();
+    if (diff <= 0) return null;
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return { d, h, m, s };
+  };
+
+  const [time, setTime] = useState(calc);
+
+  useEffect(() => {
+    setTime(calc());
+    const id = setInterval(() => setTime(calc()), 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  if (!time) return <span className="text-red-500 font-medium">Expired</span>;
+
+  return (
+    <span className="font-mono text-xs tabular-nums">
+      {time.d > 0 && `${time.d}d `}{time.h}h {time.m}m {time.s}s
+    </span>
+  );
+}
+
 function formatDate(d) {
   if (!d) return "-";
   const date = new Date(d);
@@ -34,6 +65,7 @@ const columns = [
   { key: "last_used_at", label: "Last Used", sortable: true },
   { key: "created_at", label: "Created", sortable: true },
   { key: "status", label: "Status", sortable: true },
+  { key: "hwid", label: "HWID", sortable: true },
   { key: "actions", label: "Actions", sortable: false },
 ];
 
@@ -160,9 +192,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                     {l.owner || "-"}
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">
-                    {l.membership_type === "lifetime"
-                      ? "Lifetime"
-                      : formatDate(l.expires_at)}
+                    <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">
                     {l.last_used_at ? formatDate(l.last_used_at) : (
@@ -185,6 +215,9 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       {l.status}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400 max-w-[120px] truncate" title={l.hwid || ""}>
+                    {l.hwid || <span className="text-slate-300 dark:text-slate-600">-</span>}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <button
@@ -194,6 +227,14 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       >
                         Extend
                       </button>
+                      {l.hwid && (
+                        <button
+                          onClick={() => onAct(l.license_code, "reset-hwid", "HWID Reset")}
+                          className="rounded-md border border-orange-200 px-2.5 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
+                        >
+                          Reset HWID
+                        </button>
+                      )}
                       {l.status === "suspended" ? (
                         <button
                           onClick={() => onAct(l.license_code, "suspend-license", "Unsuspended")}

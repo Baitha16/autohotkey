@@ -1,8 +1,11 @@
 export function isValidLicenseCode(code: string): boolean {
   const vip = /^VIP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   const trial = /^TRIAL-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+  const wl = /^WL-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+  const ml = /^ML-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+  const lt = /^LT-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   const ez = /^EZ-\d{9,15}(-[A-Z0-9]{4}-[A-Z0-9]{4})?$/;
-  return vip.test(code) || trial.test(code) || ez.test(code);
+  return vip.test(code) || trial.test(code) || wl.test(code) || ml.test(code) || lt.test(code) || ez.test(code);
 }
 
 export function isValidPhone(phone: string): boolean {
