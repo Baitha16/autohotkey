@@ -387,5 +387,6 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
         </div>
       )}
     </div>
+    </>
   );
 }
