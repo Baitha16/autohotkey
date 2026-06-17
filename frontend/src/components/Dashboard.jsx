@@ -34,9 +34,9 @@ export default function Dashboard({ onLogout }) {
     });
   }, []);
 
-  const prompt = useCallback((msg, def = "") => {
+  const prompt = useCallback((msg, def = "", opts = {}) => {
     return new Promise((resolve) => {
-      setPromptState({ msg, def: String(def), resolve });
+      setPromptState({ msg, def: String(def), ...opts, resolve });
     });
   }, []);
 
@@ -120,12 +120,12 @@ export default function Dashboard({ onLogout }) {
 
     let body = { license_code: code };
     if (endpoint === "update-program") {
-      const d = await prompt(`Program type for ${code}`, "");
+      const d = await prompt(`Program type for ${code}`, "", { label: "Program name", inputType: "text", buttonLabel: "Save" });
       if (d === null) return;
       body.program_type = d;
     }
     if (endpoint === "update-owner") {
-      const d = await prompt(`Owner for ${code}`, "");
+      const d = await prompt(`Owner for ${code}`, "", { label: "Owner name", inputType: "text", buttonLabel: "Save" });
       if (d === null) return;
       body.owner = d;
     }

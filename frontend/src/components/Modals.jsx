@@ -43,6 +43,10 @@ export function PromptModal({ state, close }) {
 
   if (!state) return null;
 
+  const label = state.label || "Duration (days)";
+  const inputType = state.inputType || "number";
+  const buttonLabel = state.buttonLabel || "Extend";
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={close}>
       <div
@@ -51,9 +55,9 @@ export function PromptModal({ state, close }) {
       >
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{state.msg}</h3>
         <div className="mt-4">
-          <label className="mb-1.5 block text-xs font-medium text-slate-500 dark:text-slate-400">Duration (days)</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
           <input
-            type="number"
+            type={inputType}
             value={val}
             onChange={(e) => setVal(e.target.value)}
             min={1}
@@ -72,7 +76,7 @@ export function PromptModal({ state, close }) {
             onClick={() => { state.resolve(val); close(); }}
             className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
           >
-            Extend
+            {buttonLabel}
           </button>
         </div>
       </div>
