@@ -1,6 +1,10 @@
 import { api } from "../lib/api";
 
-const typeOptions = ["monthly", "weekly", "lifetime"];
+const typeOptions = [
+  { value: "monthly", label: "Monthly" },
+  { value: "weekly", label: "Weekly" },
+  { value: "lifetime", label: "Lifetime" },
+];
 
 export default function Toolbar({
   type,
@@ -30,7 +34,7 @@ export default function Toolbar({
           className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
         >
           {typeOptions.map((t) => (
-            <option key={t}>{t}</option>
+            <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
 

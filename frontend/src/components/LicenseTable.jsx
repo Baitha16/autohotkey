@@ -49,7 +49,7 @@ function StatusCell({ expiresAt, type, status }) {
   if (status === "suspended") {
     return (
       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950 dark:text-amber-400 dark:ring-amber-500/30">
-        suspended
+        Suspended
       </span>
     );
   }
@@ -59,15 +59,15 @@ function StatusCell({ expiresAt, type, status }) {
   if (expired) {
     return (
       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-950 dark:text-red-400 dark:ring-red-500/30">
-        expired
+        Expired
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-400 dark:ring-emerald-500/30">
-      active
-    </span>
+      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-400 dark:ring-emerald-500/30">
+        Active
+      </span>
   );
 }
 
@@ -125,11 +125,17 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
     );
   }, [licenses, search]);
 
+  function effectiveStatus(l) {
+    if (l.status === "suspended") return "suspended";
+    if (l.membership_type !== "lifetime" && l.expires_at && new Date(l.expires_at).getTime() <= Date.now()) return "expired";
+    return l.status;
+  }
+
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((a, b) => {
-      let va = a[sortCol];
-      let vb = b[sortCol];
+      let va = sortCol === "status" ? effectiveStatus(a) : a[sortCol];
+      let vb = sortCol === "status" ? effectiveStatus(b) : b[sortCol];
       if (["expires_at", "created_at", "last_used_at"].includes(sortCol)) {
         va = va ? new Date(va).getTime() : 0;
         vb = vb ? new Date(vb).getTime() : 0;
