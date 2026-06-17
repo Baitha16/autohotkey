@@ -119,10 +119,15 @@ export default function Dashboard({ onLogout }) {
     }
 
     let body = { license_code: code };
-    if (endpoint === "update-license") {
+    if (endpoint === "update-program") {
       const d = await prompt(`Program type for ${code}`, "");
       if (d === null) return;
       body.program_type = d;
+    }
+    if (endpoint === "update-owner") {
+      const d = await prompt(`Owner for ${code}`, "");
+      if (d === null) return;
+      body.owner = d;
     }
     if (endpoint === "extend-license") {
       const d = await prompt(`Extend license ${code}`, "30");
@@ -130,7 +135,8 @@ export default function Dashboard({ onLogout }) {
       body.duration_days = +d;
     }
     try {
-      const ep = endpoint === "delete-license" ? "licenses" : endpoint;
+      const endpointMap = { "update-program": "update-license", "update-owner": "update-license" };
+      const ep = endpoint === "delete-license" ? "licenses" : (endpointMap[endpoint] || endpoint);
       const method = endpoint === "delete-license" ? "DELETE" : "POST";
       const d = await api(`/api/${ep}`, { method, body: JSON.stringify(body) });
       if (d.success) add(`${successMsg}: ${code}`);

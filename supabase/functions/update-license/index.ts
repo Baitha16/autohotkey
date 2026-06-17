@@ -8,7 +8,7 @@ serve(async (req) => {
   if (cors) return cors;
 
   try {
-    const { license_code, program_type } = await req.json();
+    const { license_code, program_type, owner } = await req.json();
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return new Response(
@@ -34,6 +34,7 @@ serve(async (req) => {
 
     const updateData: Record<string, unknown> = {};
     if (program_type !== undefined) updateData.program_type = program_type;
+    if (owner !== undefined) updateData.owner = owner;
 
     const { error: updateError } = await supabase
       .from("licenses")

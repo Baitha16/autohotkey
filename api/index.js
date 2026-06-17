@@ -409,11 +409,11 @@ app.post("/api/reset-hwid", adminAuth, adminLimiter, async (req, res) => {
   }
 });
 
-/* ---------- ADMIN: update-license (program_type) ---------- */
+/* ---------- ADMIN: update-license (program_type, owner) ---------- */
 
 app.post("/api/update-license", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { license_code, program_type } = req.body;
+    const { license_code, program_type, owner } = req.body;
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return fail(res, "Invalid license code format");
@@ -430,6 +430,7 @@ app.post("/api/update-license", adminAuth, adminLimiter, async (req, res) => {
 
     const updateData = {};
     if (program_type !== undefined) updateData.program_type = program_type;
+    if (owner !== undefined) updateData.owner = owner;
 
     const { error } = await getSupabase()
       .from("licenses")

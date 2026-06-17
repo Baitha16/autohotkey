@@ -252,10 +252,16 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => onAct(l.license_code, "update-license", "Program Updated")}
+                        onClick={() => onAct(l.license_code, "update-program", "Program Updated")}
                         className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400"
                       >
                         Program
+                      </button>
+                      <button
+                        onClick={() => onAct(l.license_code, "update-owner", "Owner Updated")}
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-teal-950 dark:hover:text-teal-400"
+                      >
+                        Owner
                       </button>
                       <button
                         disabled={l.status === "expired"}
