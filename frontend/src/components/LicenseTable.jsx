@@ -230,7 +230,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
       </div>
 
       {/* --- DESKTOP/TABLET: table layout --- */}
-      <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="hidden sm:block rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800" style={{ overflowX: "auto" }}>
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
@@ -291,12 +291,12 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                     <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+                  <td className="px-3 py-3 text-xs text-slate-500">
                     {l.last_used_at ? formatDate(l.last_used_at) : (
                       <span className="text-slate-300 dark:text-slate-600">Never</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+                  <td className="px-3 py-3 text-xs text-slate-500">
                     {formatDate(l.created_at)}
                   </td>
                   <td className="px-3 py-3">
