@@ -34,14 +34,19 @@ serve(async (req) => {
       }
     }
 
-    const expires_at = new Date(Date.now() + 3600000).toISOString();
+    const { trial_minutes, program_type, owner } = await req.json();
+    const trialMins = Math.max(1, Math.min(43200, parseInt(trial_minutes) || 60));
+    const expires_at = new Date(Date.now() + trialMins * 60000).toISOString();
 
-    const { error } = await supabase.from("licenses").insert({
+    const ins: Record<string, unknown> = {
       license_code,
       membership_type: "trial",
       expires_at,
       status: "active",
-    });
+    };
+    if (program_type != null) ins.program_type = program_type;
+    if (owner != null) ins.owner = owner;
+    const { error } = await supabase.from("licenses").insert(ins);
 
     if (error) throw error;
 

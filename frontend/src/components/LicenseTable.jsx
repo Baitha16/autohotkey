@@ -235,140 +235,135 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
       </div>
 
       {/* --- DESKTOP/TABLET: table layout --- */}
-      <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
-              {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`${hideClass(col)} px-2 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap ${
-                      col.sortable ? "cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200" : ""
-                    }`}
-                    onClick={() => col.sortable && toggleSort(col.key)}
-                  >
-                    {col.label}
-                    {sortIcon(col.key)}
-                  </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-            {sorted.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-slate-400">
-                  No licenses match your search.
-                </td>
-              </tr>
-            ) : (
-              paged.map((l) => (
-                <tr
-                  key={l.id}
-                  className="transition-colors hover:bg-indigo-50/40 dark:hover:bg-indigo-950/30"
-                >
-                  <td className="whitespace-nowrap px-2 py-2.5">
-                    <button
-                      onClick={() => copyToClipboard(l.license_code, add)}
-                      className="group inline-flex items-center gap-1 font-mono text-xs text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
+      <div className="hidden sm:block rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
+                {columns.map((col) => (
+                    <th
+                      key={col.key}
+                      className={`${hideClass(col)} px-1.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap ${
+                        col.sortable ? "cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200" : ""
+                      }`}
+                      onClick={() => col.sortable && toggleSort(col.key)}
                     >
-                      {l.license_code}
-                      <svg
-                        className="h-3 w-3 shrink-0 text-slate-300 transition-opacity group-hover:text-indigo-400 dark:text-slate-600"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                      </svg>
-                    </button>
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2.5 text-xs capitalize text-slate-700 dark:text-slate-300">
-                    {l.membership_type}
-                  </td>
-                  <td className={`${hideClass(columns[2])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-700 dark:text-slate-300 max-w-[100px] truncate`}>
-                    {l.owner || "-"}
-                  </td>
-                  <td className={`${hideClass(columns[3])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-700 dark:text-slate-300 max-w-[100px] truncate`}>
-                    {l.program_type || "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2.5 text-xs text-slate-500">
-                    <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
-                  </td>
-                  <td className={`${hideClass(columns[5])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-500`}>
-                    {l.last_used_at ? formatDate(l.last_used_at) : (
-                      <span className="text-slate-300 dark:text-slate-600">Never</span>
-                    )}
-                  </td>
-                  <td className={`${hideClass(columns[6])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-500`}>
-                    {formatDate(l.created_at)}
-                  </td>
-                  <td className="px-2 py-2.5">
-                    <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
-                  </td>
-                  <td className={`${hideClass(columns[8])} whitespace-nowrap px-2 py-2.5 text-xs font-mono text-slate-500 dark:text-slate-400 max-w-[120px] truncate`}>
-                    {l.hwid || <span className="text-slate-300 dark:text-slate-600">-</span>}
-                  </td>
-                  <td className="px-2 py-2.5">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <button
-                        onClick={() => onAct(l.license_code, "update-program", "Program Updated")}
-                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400"
-                      >
-                        P
-                      </button>
-                      <button
-                        onClick={() => onAct(l.license_code, "update-owner", "Owner Updated")}
-                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-teal-950 dark:hover:text-teal-400"
-                      >
-                        O
-                      </button>
-                      <button
-                        disabled={l.status === "expired"}
-                        onClick={() => onAct(l.license_code, "extend-license", "Extended")}
-                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-indigo-400 dark:hover:bg-indigo-950"
-                      >
-                        Ext
-                      </button>
-                      {l.hwid && (
-                        <button
-                          onClick={() => onAct(l.license_code, "reset-hwid", "HWID Reset")}
-                          className="rounded-md border border-orange-200 px-1.5 py-0.5 text-[10px] font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
-                        >
-                          HWID
-                        </button>
-                      )}
-                      {l.status === "suspended" ? (
-                        <button
-                          onClick={() => onAct(l.license_code, "suspend-license", "Unsuspended")}
-                          className="rounded-md border border-emerald-200 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
-                        >
-                          Un
-                        </button>
-                      ) : (
-                        <button
-                          disabled={l.status === "expired"}
-                          onClick={() => onAct(l.license_code, "suspend-license", "Suspended")}
-                          className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-amber-950 dark:hover:text-amber-400"
-                        >
-                          Sus
-                        </button>
-                      )}
-                      <button
-                        onClick={() => onAct(l.license_code, "delete-license", "Deleted")}
-                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-red-950 dark:hover:text-red-400"
-                      >
-                        Del
-                      </button>
-                    </div>
+                      {col.label}
+                      {sortIcon(col.key)}
+                    </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              {sorted.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-slate-400">
+                    No licenses match your search.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                paged.map((l) => (
+                  <tr
+                    key={l.id}
+                    className="transition-colors hover:bg-indigo-50/40 dark:hover:bg-indigo-950/30"
+                  >
+                    <td className="whitespace-nowrap px-1.5 py-2">
+                      <button
+                        onClick={() => copyToClipboard(l.license_code, add)}
+                        className="group inline-flex items-center gap-1 font-mono text-[11px] text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
+                        title={l.license_code}
+                      >
+                        <span className="max-w-[130px] truncate">{l.license_code}</span>
+                        <svg
+                          className="h-2.5 w-2.5 shrink-0 text-slate-300 transition-opacity group-hover:text-indigo-400 dark:text-slate-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                        </svg>
+                      </button>
+                    </td>
+                    <td className="whitespace-nowrap px-1.5 py-2 text-[11px] capitalize text-slate-700 dark:text-slate-300">
+                      {l.membership_type}
+                    </td>
+                    <td className={`${hideClass(columns[2])} whitespace-nowrap px-1.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 max-w-[90px] truncate`}>
+                      {l.owner || "-"}
+                    </td>
+                    <td className={`${hideClass(columns[3])} whitespace-nowrap px-1.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 max-w-[90px] truncate`}>
+                      {l.program_type || "-"}
+                    </td>
+                    <td className="whitespace-nowrap px-1.5 py-2 text-[11px] text-slate-500">
+                      <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
+                    </td>
+                    <td className={`${hideClass(columns[5])} whitespace-nowrap px-1.5 py-2 text-[11px] text-slate-500`}>
+                      {l.last_used_at ? formatDate(l.last_used_at) : (
+                        <span className="text-slate-300 dark:text-slate-600">Never</span>
+                      )}
+                    </td>
+                    <td className={`${hideClass(columns[6])} whitespace-nowrap px-1.5 py-2 text-[11px] text-slate-500`}>
+                      {formatDate(l.created_at)}
+                    </td>
+                    <td className="px-1.5 py-2">
+                      <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
+                    </td>
+                    <td className={`${hideClass(columns[8])} whitespace-nowrap px-1.5 py-2 text-[11px] font-mono text-slate-500 dark:text-slate-400 max-w-[100px] truncate`}>
+                      {l.hwid || <span className="text-slate-300 dark:text-slate-600">-</span>}
+                    </td>
+                    <td className="px-1.5 py-2">
+                      <div className="flex items-center gap-0.5 flex-nowrap">
+                        <button
+                          onClick={() => onAct(l.license_code, "update-program", "Program Updated")}
+                          className="rounded border border-slate-200 px-1 py-0.5 text-[9px] font-semibold text-violet-600 hover:bg-violet-50 dark:border-slate-600 dark:text-violet-400 dark:hover:bg-violet-950"
+                          title="Program"
+                        >Pg</button>
+                        <button
+                          onClick={() => onAct(l.license_code, "update-owner", "Owner Updated")}
+                          className="rounded border border-slate-200 px-1 py-0.5 text-[9px] font-semibold text-teal-600 hover:bg-teal-50 dark:border-slate-600 dark:text-teal-400 dark:hover:bg-teal-950"
+                          title="Owner"
+                        >Ow</button>
+                        <button
+                          disabled={l.status === "expired"}
+                          onClick={() => onAct(l.license_code, "extend-license", "Extended")}
+                          className="rounded border border-slate-200 px-1 py-0.5 text-[9px] font-semibold text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-600 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                          title="Extend"
+                        >Ex</button>
+                        {l.hwid && (
+                          <button
+                            onClick={() => onAct(l.license_code, "reset-hwid", "HWID Reset")}
+                            className="rounded border border-orange-200 px-1 py-0.5 text-[9px] font-semibold text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
+                            title="Reset HWID"
+                          >Hw</button>
+                        )}
+                        {l.status === "suspended" ? (
+                          <button
+                            onClick={() => onAct(l.license_code, "suspend-license", "Unsuspended")}
+                            className="rounded border border-emerald-200 px-1 py-0.5 text-[9px] font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                            title="Unsuspend"
+                          >Un</button>
+                        ) : (
+                          <button
+                            disabled={l.status === "expired"}
+                            onClick={() => onAct(l.license_code, "suspend-license", "Suspended")}
+                            className="rounded border border-slate-200 px-1 py-0.5 text-[9px] font-semibold text-amber-600 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-600 dark:text-amber-400 dark:hover:bg-amber-950"
+                            title="Suspend"
+                          >Su</button>
+                        )}
+                        <button
+                          onClick={() => onAct(l.license_code, "delete-license", "Deleted")}
+                          className="rounded border border-slate-200 px-1 py-0.5 text-[9px] font-semibold text-red-600 hover:bg-red-50 dark:border-slate-600 dark:text-red-400 dark:hover:bg-red-950"
+                          title="Delete"
+                        >Dl</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-4 py-3 dark:border-slate-700">

@@ -91,7 +91,9 @@ export default function Dashboard({ onLogout }) {
 
   const genTrial = async () => {
     try {
-      const d = await api("/api/generate-trial", { method: "POST", body: JSON.stringify({ trial_minutes: trialMinutes }) });
+      const body = { trial_minutes: trialMinutes };
+      if (programType.trim()) body.program_type = programType.trim();
+      const d = await api("/api/generate-trial", { method: "POST", body: JSON.stringify(body) });
       const hrs = Math.floor(trialMinutes / 60);
       const mins = trialMinutes % 60;
       const label = hrs > 0 ? `${hrs}h${mins > 0 ? ` ${mins}m` : ""}` : `${mins}m`;

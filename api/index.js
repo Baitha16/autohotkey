@@ -158,8 +158,9 @@ app.post("/api/generate-trial", trialLimiter, async (req, res) => {
       status: "active",
       hwid: null // Trial awal belum terikat HWID
     };
-    const { owner: trialOwner } = req.body;
+    const { owner: trialOwner, program_type: trialProgram } = req.body;
     if (trialOwner != null) trialData.owner = trialOwner;
+    if (trialProgram != null) trialData.program_type = trialProgram;
     const { error } = await getSupabase().from("licenses").insert(trialData);
 
     if (error) throw error;
