@@ -11,6 +11,8 @@ export default function Toolbar({
   setPhone,
   owner,
   setOwner,
+  programType,
+  setProgramType,
   trialMinutes,
   setTrialMinutes,
   search,
@@ -40,6 +42,13 @@ export default function Toolbar({
           className="w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-center text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
         />
       )}
+
+      <input
+        value={programType}
+        onChange={(e) => setProgramType(e.target.value)}
+        placeholder="Program (optional)"
+        className="w-36 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+      />
 
       <input
         value={phone}

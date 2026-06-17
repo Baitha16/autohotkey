@@ -98,6 +98,7 @@ const columns = [
   { key: "license_code", label: "Code", sortable: true },
   { key: "membership_type", label: "Type", sortable: true },
   { key: "owner", label: "Owner", sortable: true },
+  { key: "program_type", label: "Program", sortable: true },
   { key: "expires_at", label: "Expires", sortable: true },
   { key: "last_used_at", label: "Last Used", sortable: true },
   { key: "created_at", label: "Created", sortable: true },
@@ -119,7 +120,8 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
         l.license_code.toLowerCase().includes(q) ||
         l.membership_type.toLowerCase().includes(q) ||
         l.status.toLowerCase().includes(q) ||
-        (l.owner && l.owner.toLowerCase().includes(q))
+        (l.owner && l.owner.toLowerCase().includes(q)) ||
+        (l.program_type && l.program_type.toLowerCase().includes(q))
     );
   }, [licenses, search]);
 
@@ -227,6 +229,9 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700 dark:text-slate-300">
                     {l.owner || "-"}
                   </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700 dark:text-slate-300">
+                    {l.program_type || "-"}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                     <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
                   </td>
@@ -246,6 +251,12 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => onAct(l.license_code, "update-license", "Program Updated")}
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400"
+                      >
+                        Program
+                      </button>
                       <button
                         disabled={l.status === "expired"}
                         onClick={() => onAct(l.license_code, "extend-license", "Extended")}

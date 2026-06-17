@@ -8,7 +8,7 @@ serve(async (req) => {
   if (cors) return cors;
 
   try {
-    const { license_code } = await req.json();
+    const { license_code, program_type } = await req.json();
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return new Response(
@@ -17,55 +17,33 @@ serve(async (req) => {
       );
     }
 
-    const { data, error } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from("licenses")
-      .select("license_code, membership_type, expires_at, status, program_type")
+      .select("id")
       .eq("license_code", license_code)
       .maybeSingle();
 
-    if (error) throw error;
+    if (fetchError) throw fetchError;
 
-    if (!data) {
+    if (!existing) {
       return new Response(
         JSON.stringify({ success: false, error: "License code not found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 },
       );
     }
 
-    if (data.status !== "active") {
-      return new Response(
-        JSON.stringify({ success: false, error: `License is ${data.status}` }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
-      );
-    }
+    const updateData: Record<string, unknown> = {};
+    if (program_type !== undefined) updateData.program_type = program_type;
 
-    const now = new Date();
-    const expires = new Date(data.expires_at);
-
-    if (now > expires) {
-      await supabase
-        .from("licenses")
-        .update({ status: "expired" })
-        .eq("license_code", license_code);
-
-      return new Response(
-        JSON.stringify({ success: false, error: "License has expired" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
-      );
-    }
-
-    await supabase
+    const { error: updateError } = await supabase
       .from("licenses")
-      .update({ last_used_at: now.toISOString() })
+      .update(updateData)
       .eq("license_code", license_code);
 
+    if (updateError) throw updateError;
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        membership_type: data.membership_type,
-        expires_at: data.expires_at,
-        program_type: data.program_type,
-      }),
+      JSON.stringify({ success: true, message: "License updated" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {

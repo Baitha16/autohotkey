@@ -76,7 +76,7 @@ app.post("/api/verify-license", async (req, res) => {
     // Mengambil data lisensi termasuk kolom hwid
     const { data, error } = await getSupabase()
       .from("licenses")
-      .select("license_code, membership_type, expires_at, status, owner, hwid")
+      .select("license_code, membership_type, expires_at, status, owner, program_type, hwid")
       .eq("license_code", license_code)
       .maybeSingle();
 
@@ -120,6 +120,7 @@ app.post("/api/verify-license", async (req, res) => {
       membership_type: data.membership_type,
       expires_at: data.expires_at,
       owner: data.owner,
+      program_type: data.program_type,
       hwid: boundHwid
     });
   } catch (err) {
@@ -189,7 +190,7 @@ app.get("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
 
 app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { membership_type, duration_days, phone } = req.body;
+    const { membership_type, duration_days, phone, program_type } = req.body;
     const { owner } = req.body;
 
     if (!isValidMembershipType(membership_type)) {
@@ -234,6 +235,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
 
         const updateData = { membership_type, expires_at: finalExpiry };
         if (owner != null) updateData.owner = owner;
+        if (program_type != null) updateData.program_type = program_type;
         await getSupabase()
           .from("licenses")
           .update(updateData)
@@ -250,6 +252,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         hwid: null // Belum terikat HWID saat digenerate admin
       };
       if (owner != null) insertData.owner = owner;
+      if (program_type != null) insertData.program_type = program_type;
       const { error } = await getSupabase().from("licenses").insert(insertData);
 
       if (error) throw error;
@@ -284,6 +287,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       hwid: null // Belum terikat HWID saat digenerate admin
     };
     if (owner != null) insertData.owner = owner;
+    if (program_type != null) insertData.program_type = program_type;
     const { error } = await getSupabase().from("licenses").insert(insertData);
 
     if (error) throw error;
@@ -329,6 +333,7 @@ app.post("/api/extend-license", adminAuth, adminLimiter, async (req, res) => {
       status: "active",
     };
     if (extOwner != null) extData.owner = extOwner;
+    if (req.body.program_type !== undefined) extData.program_type = req.body.program_type;
     const { error: updateError } = await getSupabase()
       .from("licenses")
       .update(extData)
@@ -399,6 +404,41 @@ app.post("/api/reset-hwid", adminAuth, adminLimiter, async (req, res) => {
     if (error) throw error;
 
     return ok(res, { message: "HWID reset successfully" });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: update-license (program_type) ---------- */
+
+app.post("/api/update-license", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { license_code, program_type } = req.body;
+
+    if (!license_code || !isValidLicenseCode(license_code)) {
+      return fail(res, "Invalid license code format");
+    }
+
+    const { data: existing, error: fetchError } = await getSupabase()
+      .from("licenses")
+      .select("id")
+      .eq("license_code", license_code)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!existing) return fail(res, "License code not found", 404);
+
+    const updateData = {};
+    if (program_type !== undefined) updateData.program_type = program_type;
+
+    const { error } = await getSupabase()
+      .from("licenses")
+      .update(updateData)
+      .eq("license_code", license_code);
+
+    if (error) throw error;
+
+    return ok(res, { message: "License updated" });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
   }

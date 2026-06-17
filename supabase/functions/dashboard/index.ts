@@ -20,7 +20,7 @@ const HTML = (rows: string) => `<!DOCTYPE html>
 </form>
 <hr>
 <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">
-<tr><th>Code</th><th>Type</th><th>Expires</th><th>Last Used</th><th>Status</th><th>Action</th></tr>
+<tr><th>Code</th><th>Type</th><th>Program</th><th>Expires</th><th>Last Used</th><th>Status</th><th>Action</th></tr>
 ${rows}
 </table>
 <script>
@@ -31,6 +31,7 @@ function generateTrial(){fetch(B+"/generate-trial",{method:"POST",headers:{"Cont
 function extendLicense(c){const d=prompt("Days:",30);if(d)fetch(B+"/extend-license",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({license_code:c,duration_days:+d})}).then(r=>r.json()).then(r=>show(r.success?"Extended":r.error,!r.success))}
 function suspendLicense(c){if(confirm("Suspend?"))fetch(B+"/suspend-license",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({license_code:c})}).then(r=>r.json()).then(r=>show(r.success?"Suspended":r.error,!r.success))}
 function deleteLicense(c){if(confirm("Delete?"))fetch(B+"/delete-license",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({license_code:c})}).then(r=>r.json()).then(r=>show(r.success?"Deleted":r.error,!r.success))}
+function updateProgram(c){const p=prompt("Program type:");if(p!==null)fetch(B+"/update-license",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({license_code:c,program_type:p})}).then(r=>r.json()).then(r=>show(r.success?"Program Updated":r.error,!r.success))}
 </script>
 </body>
 </html>`;
@@ -52,11 +53,13 @@ serve(async (req) => {
     return `<tr>
       <td><code>${code}</code></td>
       <td>${l.membership_type}</td>
+      <td>${l.program_type || "-"}</td>
       <td>${expires}</td>
       <td>${lastUsed}</td>
       <td>${l.status}</td>
       <td>
         <button onclick="extendLicense('${code}')">Extend</button>
+        <button onclick="updateProgram('${code}')">Program</button>
         <button onclick="suspendLicense('${code}')">Suspend</button>
         <button onclick="deleteLicense('${code}')">Delete</button>
       </td>

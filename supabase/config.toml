@@ -21,3 +21,6 @@ verify_jwt = false
 
 [functions.list-licenses]
 verify_jwt = false
+
+[functions.update-license]
+verify_jwt = false

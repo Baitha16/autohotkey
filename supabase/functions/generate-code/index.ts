@@ -13,7 +13,7 @@ serve(async (req) => {
   if (cors) return cors;
 
   try {
-    const { membership_type, duration_days, phone } = await req.json();
+    const { membership_type, duration_days, phone, program_type } = await req.json();
 
     if (!isValidMembershipType(membership_type)) {
       return new Response(
@@ -57,9 +57,11 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existing) {
+        const upd: Record<string, unknown> = { membership_type, expires_at };
+        if (program_type != null) upd.program_type = program_type;
         await supabase
           .from("licenses")
-          .update({ membership_type, expires_at })
+          .update(upd)
           .eq("license_code", license_code);
 
         return new Response(
@@ -67,9 +69,11 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       } else {
-        const { error } = await supabase.from("licenses").insert({
+        const ins: Record<string, unknown> = {
           license_code, membership_type, expires_at, status: "active",
-        });
+        };
+        if (program_type != null) ins.program_type = program_type;
+        const { error } = await supabase.from("licenses").insert(ins);
         if (error) throw error;
         return new Response(
           JSON.stringify({ success: true, license_code, expires_at }),
@@ -105,12 +109,14 @@ serve(async (req) => {
       ? new Date(Date.now() + 36500 * 86400000).toISOString()
       : new Date(Date.now() + duration_days * 86400000).toISOString();
 
-    const { error } = await supabase.from("licenses").insert({
+    const ins: Record<string, unknown> = {
       license_code,
       membership_type,
       expires_at,
       status: "active",
-    });
+    };
+    if (program_type != null) ins.program_type = program_type;
+    const { error } = await supabase.from("licenses").insert(ins);
 
     if (error) throw error;
 
