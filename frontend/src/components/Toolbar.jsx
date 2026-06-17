@@ -6,6 +6,7 @@ export default function Toolbar({
   type,
   onChangeType,
   days,
+  onChangeDays,
   phone,
   setPhone,
   owner,
@@ -34,8 +35,9 @@ export default function Toolbar({
         <input
           type="number"
           value={days}
-          readOnly
-          className="w-16 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm text-slate-500 outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400"
+          onChange={(e) => onChangeDays(Math.max(1, +e.target.value || 1))}
+          min="1"
+          className="w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-center text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
         />
       )}
 

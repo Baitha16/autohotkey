@@ -41,8 +41,6 @@ export default function Dashboard({ onLogout }) {
 
   const changeType = (t) => {
     setType(t);
-    if (t === "monthly") setDays(30);
-    else if (t === "weekly") setDays(7);
   };
 
   const load = useCallback(async (silent = false) => {
@@ -192,6 +190,7 @@ export default function Dashboard({ onLogout }) {
           type={type}
           onChangeType={changeType}
           days={days}
+          onChangeDays={setDays}
           phone={phone}
           setPhone={setPhone}
           owner={owner}
