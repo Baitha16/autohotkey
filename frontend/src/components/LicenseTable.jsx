@@ -97,13 +97,13 @@ function copyToClipboard(text, add) {
 const columns = [
   { key: "license_code", label: "Code", sortable: true },
   { key: "membership_type", label: "Type", sortable: true },
-  { key: "owner", label: "Owner", sortable: true },
-  { key: "program_type", label: "Program", sortable: true },
+  { key: "owner", label: "Owner", sortable: true, hide: "md" },
+  { key: "program_type", label: "Program", sortable: true, hide: "md" },
   { key: "expires_at", label: "Expires", sortable: true },
-  { key: "last_used_at", label: "Last Used", sortable: true },
-  { key: "created_at", label: "Created", sortable: true },
+  { key: "last_used_at", label: "Last Used", sortable: true, hide: "lg" },
+  { key: "created_at", label: "Created", sortable: true, hide: "lg" },
   { key: "status", label: "Status", sortable: true },
-  { key: "hwid", label: "HWID", sortable: true },
+  { key: "hwid", label: "HWID", sortable: true, hide: "lg" },
   { key: "actions", label: "Actions", sortable: false },
 ];
 
@@ -172,16 +172,77 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
     );
   }
 
+  function hideClass(col) {
+    if (!col.hide) return "";
+    return `hidden ${col.hide}:table-cell`;
+  }
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <div className="min-w-[1400px]">
+    <>
+      {/* --- MOBILE: card layout --- */}
+      <div className="space-y-3 sm:hidden">
+        {paged.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <p className="text-sm text-slate-400">No licenses match your search.</p>
+          </div>
+        ) : (
+          paged.map((l) => (
+            <div
+              key={l.id}
+              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <button
+                  onClick={() => copyToClipboard(l.license_code, add)}
+                  className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-slate-700 hover:text-indigo-600 dark:text-slate-200 dark:hover:text-indigo-400"
+                >
+                  {l.license_code}
+                  <svg className="h-3 w-3 shrink-0 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                  </svg>
+                </button>
+                <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <span className="text-slate-400">Type</span><span className="text-slate-700 dark:text-slate-300 capitalize">{l.membership_type}</span>
+                <span className="text-slate-400">Owner</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.owner || "-"}</span>
+                <span className="text-slate-400">Program</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.program_type || "-"}</span>
+                <span className="text-slate-400">Expires</span><CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
+                {l.hwid && <><span className="text-slate-400">HWID</span><span className="font-mono text-slate-500 truncate">{l.hwid}</span></>}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3 dark:border-slate-700">
+                <button onClick={() => onAct(l.license_code, "update-program", "Program Updated")} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400">Program</button>
+                <button onClick={() => onAct(l.license_code, "update-owner", "Owner Updated")} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-teal-950 dark:hover:text-teal-400">Owner</button>
+                <button disabled={l.status === "expired"} onClick={() => onAct(l.license_code, "extend-license", "Extended")} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-400">Extend</button>
+                {l.hwid && <button onClick={() => onAct(l.license_code, "reset-hwid", "HWID Reset")} className="rounded-md border border-orange-200 px-2 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950">HWID</button>}
+                {l.status === "suspended" ? (
+                  <button onClick={() => onAct(l.license_code, "suspend-license", "Unsuspended")} className="rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950">Unsuspend</button>
+                ) : (
+                  <button disabled={l.status === "expired"} onClick={() => onAct(l.license_code, "suspend-license", "Suspended")} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-amber-950 dark:hover:text-amber-400">Suspend</button>
+                )}
+                <button onClick={() => onAct(l.license_code, "delete-license", "Deleted")} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-red-950 dark:hover:text-red-400">Delete</button>
+              </div>
+            </div>
+          ))
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700">Prev</button>
+            <span className="text-xs text-slate-400">Page {page + 1} of {totalPages}</span>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)} className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700">Next</button>
+          </div>
+        )}
+      </div>
+
+      {/* --- DESKTOP/TABLET: table layout --- */}
+      <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
               {columns.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-3 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap ${
+                    className={`${hideClass(col)} px-2 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap ${
                       col.sortable ? "cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200" : ""
                     }`}
                     onClick={() => col.sortable && toggleSort(col.key)}
@@ -205,14 +266,14 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                   key={l.id}
                   className="transition-colors hover:bg-indigo-50/40 dark:hover:bg-indigo-950/30"
                 >
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="whitespace-nowrap px-2 py-2.5">
                     <button
                       onClick={() => copyToClipboard(l.license_code, add)}
-                      className="group inline-flex items-center gap-1.5 font-mono text-xs text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
+                      className="group inline-flex items-center gap-1 font-mono text-xs text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
                     >
                       {l.license_code}
                       <svg
-                        className="h-3.5 w-3.5 text-slate-300 transition-opacity group-hover:text-indigo-400 dark:text-slate-600"
+                        className="h-3 w-3 shrink-0 text-slate-300 transition-opacity group-hover:text-indigo-400 dark:text-slate-600"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -223,57 +284,57 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       </svg>
                     </button>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-sm capitalize text-slate-700 dark:text-slate-300">
+                  <td className="whitespace-nowrap px-2 py-2.5 text-xs capitalize text-slate-700 dark:text-slate-300">
                     {l.membership_type}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700 dark:text-slate-300">
+                  <td className={`${hideClass(columns[2])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-700 dark:text-slate-300 max-w-[100px] truncate`}>
                     {l.owner || "-"}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700 dark:text-slate-300">
+                  <td className={`${hideClass(columns[3])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-700 dark:text-slate-300 max-w-[100px] truncate`}>
                     {l.program_type || "-"}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+                  <td className="whitespace-nowrap px-2 py-2.5 text-xs text-slate-500">
                     <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+                  <td className={`${hideClass(columns[5])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-500`}>
                     {l.last_used_at ? formatDate(l.last_used_at) : (
                       <span className="text-slate-300 dark:text-slate-600">Never</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+                  <td className={`${hideClass(columns[6])} whitespace-nowrap px-2 py-2.5 text-xs text-slate-500`}>
                     {formatDate(l.created_at)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2.5">
                     <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">
+                  <td className={`${hideClass(columns[8])} whitespace-nowrap px-2 py-2.5 text-xs font-mono text-slate-500 dark:text-slate-400 max-w-[120px] truncate`}>
                     {l.hwid || <span className="text-slate-300 dark:text-slate-600">-</span>}
                   </td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-1">
+                  <td className="px-2 py-2.5">
+                    <div className="flex items-center gap-1 flex-wrap">
                       <button
                         onClick={() => onAct(l.license_code, "update-program", "Program Updated")}
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400"
+                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400"
                       >
-                        Program
+                        P
                       </button>
                       <button
                         onClick={() => onAct(l.license_code, "update-owner", "Owner Updated")}
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-teal-950 dark:hover:text-teal-400"
+                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-teal-950 dark:hover:text-teal-400"
                       >
-                        Owner
+                        O
                       </button>
                       <button
                         disabled={l.status === "expired"}
                         onClick={() => onAct(l.license_code, "extend-license", "Extended")}
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-400"
+                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-indigo-400 dark:hover:bg-indigo-950"
                       >
-                        Extend
+                        Ext
                       </button>
                       {l.hwid && (
                         <button
                           onClick={() => onAct(l.license_code, "reset-hwid", "HWID Reset")}
-                          className="rounded-md border border-orange-200 px-2 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
+                          className="rounded-md border border-orange-200 px-1.5 py-0.5 text-[10px] font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
                         >
                           HWID
                         </button>
@@ -281,24 +342,24 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                       {l.status === "suspended" ? (
                         <button
                           onClick={() => onAct(l.license_code, "suspend-license", "Unsuspended")}
-                          className="rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                          className="rounded-md border border-emerald-200 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
                         >
-                          Unsuspend
+                          Un
                         </button>
                       ) : (
                         <button
                           disabled={l.status === "expired"}
                           onClick={() => onAct(l.license_code, "suspend-license", "Suspended")}
-                          className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-amber-950 dark:hover:text-amber-400"
+                          className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-amber-950 dark:hover:text-amber-400"
                         >
-                          Suspend
+                          Sus
                         </button>
                       )}
                       <button
                         onClick={() => onAct(l.license_code, "delete-license", "Deleted")}
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-red-950 dark:hover:text-red-400"
+                        className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-red-950 dark:hover:text-red-400"
                       >
-                        Delete
+                        Del
                       </button>
                     </div>
                   </td>
