@@ -136,9 +136,11 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
     arr.sort((a, b) => {
       let va = sortCol === "status" ? effectiveStatus(a) : a[sortCol];
       let vb = sortCol === "status" ? effectiveStatus(b) : b[sortCol];
+      if (va == null || va === "") va = "-";
+      if (vb == null || vb === "") vb = "-";
       if (["expires_at", "created_at", "last_used_at"].includes(sortCol)) {
-        va = va ? new Date(va).getTime() : 0;
-        vb = vb ? new Date(vb).getTime() : 0;
+        va = va !== "-" ? new Date(va).getTime() : 0;
+        vb = vb !== "-" ? new Date(vb).getTime() : 0;
       }
       if (typeof va === "string") va = va.toLowerCase();
       if (typeof vb === "string") vb = vb.toLowerCase();
@@ -182,6 +184,24 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
     <>
       {/* --- MOBILE: card layout --- */}
       <div className="space-y-3 sm:hidden">
+        {/* Mobile sort controls */}
+        <div className="flex flex-wrap items-center gap-1.5 pb-1">
+          <span className="text-xs font-medium text-slate-400">Sort:</span>
+          {columns.filter((c) => c.sortable).map((col) => (
+            <button
+              key={col.key}
+              onClick={() => toggleSort(col.key)}
+              className={`rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                sortCol === col.key
+                  ? "border-indigo-500 bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400"
+                  : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+              }`}
+            >
+              {col.label}
+              {sortIcon(col.key)}
+            </button>
+          ))}
+        </div>
         {paged.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <p className="text-sm text-slate-400">No licenses match your search.</p>
