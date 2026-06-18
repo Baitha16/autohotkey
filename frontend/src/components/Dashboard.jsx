@@ -65,10 +65,16 @@ export default function Dashboard({ onLogout }) {
     return () => clearInterval(id);
   }, [load]);
 
+  function isExpired(l) {
+    return l.membership_type !== "lifetime" && l.expires_at && new Date(l.expires_at).getTime() <= Date.now();
+  }
+
   const stats = useMemo(() => {
     const s = { total: licenses.length, active: 0, expired: 0, suspended: 0 };
     licenses.forEach((l) => {
-      if (s.hasOwnProperty(l.status)) s[l.status]++;
+      if (l.status === "suspended") s.suspended++;
+      else if (isExpired(l)) s.expired++;
+      else s.active++;
     });
     return s;
   }, [licenses]);
