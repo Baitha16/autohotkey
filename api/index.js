@@ -3,6 +3,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import cron from "node-cron";
 import { getSupabase } from "../src/db/supabase.js";
 import {
   isValidLicenseCode,
@@ -490,6 +491,65 @@ const isVercel = process.env.VERCEL === "1";
 if (!isVercel) {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  // Auto cleanup & trial generation every 3 days at 00:00
+  cron.schedule("0 0 */3 * *", async () => {
+    console.log("[Cron] Running scheduled cleanup & trial generation...");
+    try {
+      // 1. Hapus license yang expired
+      const { data: deleted, error: delError } = await getSupabase()
+        .from("licenses")
+        .delete()
+        .lt("expires_at", new Date().toISOString())
+        .select("id");
+
+      if (delError) {
+        console.error("[Cron] Delete expired error:", delError.message);
+      } else {
+        console.log(`[Cron] Deleted ${deleted?.length ?? 0} expired license(s)`);
+      }
+
+      // 2. Generate 1 trial license
+      let license_code;
+      let attempts = 0;
+
+      while (true) {
+        license_code = `TRIAL-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
+        const { data } = await getSupabase()
+          .from("licenses")
+          .select("id")
+          .eq("license_code", license_code)
+          .maybeSingle();
+
+        if (!data) break;
+        if (++attempts > 10) {
+          console.error("[Cron] Could not generate unique trial code");
+          return;
+        }
+      }
+
+      const expires_at = new Date(
+        Date.now() + 3 * 24 * 60 * 60000
+      ).toISOString();
+
+      const { error: insError } = await getSupabase()
+        .from("licenses")
+        .insert({
+          license_code,
+          membership_type: "trial",
+          expires_at,
+          status: "active",
+        });
+
+      if (insError) {
+        console.error("[Cron] Trial insert error:", insError.message);
+      } else {
+        console.log(`[Cron] Trial generated: ${license_code} (expires ${expires_at})`);
+      }
+    } catch (err) {
+      console.error("[Cron] Error:", err.message);
+    }
   });
 }
 
