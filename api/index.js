@@ -479,6 +479,86 @@ app.delete("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
   }
 });
 
+/* ---------- PUBLIC: check-update ---------- */
+
+app.get("/api/check-update", async (req, res) => {
+  try {
+    const { data, error } = await getSupabase()
+      .from('app_settings')
+      .select('setting_name, setting_value');
+
+    if (error) throw error;
+
+    let latest_version = "1.0.0";
+    let update_link = "https://discord.gg/NQAnnRZcAx";
+
+    if (data) {
+      data.forEach(item => {
+        if (item.setting_name === "latest_version") latest_version = item.setting_value;
+        if (item.setting_name === "discord_link") update_link = item.setting_value;
+      });
+    }
+
+    return ok(res, { latest_version, update_link });
+  } catch (err) {
+    return ok(res, {
+      latest_version: "1.0.0",
+      update_link: "https://discord.gg/NQAnnRZcAx"
+    });
+  }
+});
+
+/* ---------- ADMIN: get settings ---------- */
+
+app.get("/api/admin/settings", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { data, error } = await getSupabase()
+      .from('app_settings')
+      .select('setting_name, setting_value');
+
+    if (error) throw error;
+
+    let settings = {};
+    if (data) {
+      data.forEach(item => {
+        settings[item.setting_name] = item.setting_value;
+      });
+    }
+
+    return ok(res, { settings });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- ADMIN: update settings ---------- */
+
+app.post("/api/admin/update-settings", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { new_version, new_link } = req.body;
+
+    if (new_version) {
+      const { error: errVer } = await getSupabase()
+        .from('app_settings')
+        .update({ setting_value: new_version })
+        .eq('setting_name', 'latest_version');
+      if (errVer) throw errVer;
+    }
+
+    if (new_link) {
+      const { error: errLink } = await getSupabase()
+        .from('app_settings')
+        .update({ setting_value: new_link })
+        .eq('setting_name', 'discord_link');
+      if (errLink) throw errLink;
+    }
+
+    return ok(res, { message: "App settings updated successfully" });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
 /* ---------- serve static frontend ---------- */
 
 app.use(express.static("frontend/dist"));

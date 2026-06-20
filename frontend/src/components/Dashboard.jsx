@@ -18,6 +18,9 @@ export default function Dashboard({ onLogout }) {
   const [programType, setProgramType] = useState("");
   const [trialMinutes, setTrialMinutes] = useState(60);
   const [search, setSearch] = useState("");
+  const [settingsVersion, setSettingsVersion] = useState("1.0.0");
+  const [settingsLink, setSettingsLink] = useState("https://discord.gg/NQAnnRZcAx");
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [confirmState, setConfirmState] = useState(null);
   const [promptState, setPromptState] = useState(null);
@@ -59,11 +62,38 @@ export default function Dashboard({ onLogout }) {
     }
   }, [add]);
 
+  const loadSettings = useCallback(async () => {
+    try {
+      const d = await api("/api/admin/settings");
+      if (d.success && d.settings) {
+        if (d.settings.latest_version) setSettingsVersion(d.settings.latest_version);
+        if (d.settings.discord_link) setSettingsLink(d.settings.discord_link);
+      }
+    } catch (_) {}
+  }, []);
+
+  const saveSettings = async () => {
+    setSettingsSaving(true);
+    try {
+      const d = await api("/api/admin/update-settings", {
+        method: "POST",
+        body: JSON.stringify({ new_version: settingsVersion, new_link: settingsLink }),
+      });
+      if (d.success) add("Settings saved");
+      else add(d.error, true);
+    } catch (e) {
+      add(e.message, true);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
   useEffect(() => {
     load();
+    loadSettings();
     const id = setInterval(() => load(true), 10000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [load, loadSettings]);
 
   function isExpired(l) {
     return l.membership_type !== "lifetime" && l.expires_at && new Date(l.expires_at).getTime() <= Date.now();
@@ -227,6 +257,12 @@ export default function Dashboard({ onLogout }) {
           onGenerate={generate}
           onTrial={genTrial}
           loading={loading}
+          settingsVersion={settingsVersion}
+          onSettingsVersionChange={setSettingsVersion}
+          settingsLink={settingsLink}
+          onSettingsLinkChange={setSettingsLink}
+          onSaveSettings={saveSettings}
+          settingsSaving={settingsSaving}
         />
 
         {loading ? (
