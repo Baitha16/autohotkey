@@ -206,6 +206,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
     const prefix =
       membership_type === "weekly" ? "WL" :
       membership_type === "monthly" ? "ML" :
+      membership_type === "yearly" ? "YL" :
       "LT";
 
     const phoneStr = phone != null ? String(phone).trim() : "";

@@ -32,6 +32,7 @@ serve(async (req) => {
     const prefix =
       membership_type === "weekly" ? "WL" :
       membership_type === "monthly" ? "ML" :
+      membership_type === "yearly" ? "YL" :
       "LT";
 
     const useEZ = phone !== undefined && phone !== null && phone !== "";

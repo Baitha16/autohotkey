@@ -47,6 +47,7 @@ export default function Dashboard({ onLogout }) {
     setType(t);
     if (t === "monthly") setDays(30);
     else if (t === "weekly") setDays(7);
+    else if (t === "yearly") setDays(365);
   };
 
   const load = useCallback(async (silent = false) => {

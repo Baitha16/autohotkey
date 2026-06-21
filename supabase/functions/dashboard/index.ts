@@ -12,7 +12,7 @@ const HTML = (rows: string) => `<!DOCTYPE html>
 <div id="msg"></div>
 <hr>
 <form onsubmit="event.preventDefault();generate()">
-  Type: <select id="genType"><option>monthly</option><option>weekly</option><option>lifetime</option></select>
+  Type: <select id="genType"><option>monthly</option><option>weekly</option><option>yearly</option><option>lifetime</option></select>
   Days: <input id="genDays" type="number" value="30" style="width:60px">
   Phone: <input id="genPhone" style="width:140px">
   <button type="submit">Generate</button>

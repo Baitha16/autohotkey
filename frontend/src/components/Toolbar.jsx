@@ -4,6 +4,7 @@ const typeOptions = [
   { value: "settings", label: "Settings" },
   { value: "monthly", label: "Monthly" },
   { value: "weekly", label: "Weekly" },
+  { value: "yearly", label: "Yearly" },
   { value: "lifetime", label: "Lifetime" },
 ];
 
