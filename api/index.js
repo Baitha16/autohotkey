@@ -560,6 +560,71 @@ app.post("/api/admin/update-settings", adminAuth, adminLimiter, async (req, res)
   }
 });
 
+/* ---------- ADMIN: auto-cleanup (delete expired + generate trial) ---------- */
+
+app.post("/api/auto-cleanup", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    let deletedCount = 0;
+    let generatedCode = null;
+    let generatedExpiry = null;
+
+    // 1. Hapus license yang expired
+    const { data: deleted, error: delError } = await getSupabase()
+      .from("licenses")
+      .delete()
+      .lt("expires_at", new Date().toISOString())
+      .select("id");
+
+    if (delError) throw delError;
+    deletedCount = deleted?.length ?? 0;
+
+    // 2. Generate 1 trial license (3 hari / 72 jam)
+    let license_code;
+    let attempts = 0;
+
+    while (true) {
+      license_code = `TRIAL-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
+      const { data } = await getSupabase()
+        .from("licenses")
+        .select("id")
+        .eq("license_code", license_code)
+        .maybeSingle();
+
+      if (!data) break;
+      if (++attempts > 10) {
+        return fail(res, "Could not generate unique code", 500);
+      }
+    }
+
+    const expires_at = new Date(
+      Date.now() + 3 * 24 * 60 * 60000
+    ).toISOString();
+
+    const { error: insError } = await getSupabase()
+      .from("licenses")
+      .insert({
+        license_code,
+        membership_type: "trial",
+        expires_at,
+        status: "active",
+      });
+
+    if (insError) throw insError;
+
+    generatedCode = license_code;
+    generatedExpiry = expires_at;
+
+    return ok(res, {
+      deleted_count: deletedCount,
+      generated_code: generatedCode,
+      expires_at: generatedExpiry,
+      message: `Deleted ${deletedCount} expired license(s) & generated trial: ${generatedCode}`,
+    });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
 /* ---------- serve static frontend ---------- */
 
 app.use(express.static("frontend/dist"));

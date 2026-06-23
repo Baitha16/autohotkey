@@ -186,6 +186,20 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  const runAutoCleanup = async () => {
+    try {
+      const d = await api("/api/auto-cleanup", { method: "POST" });
+      if (d.success) {
+        add(d.message);
+      } else {
+        add(d.error, true);
+      }
+      load();
+    } catch (e) {
+      add(e.message, true);
+    }
+  };
+
   const handleLogout = () => {
     clearApiKey();
     onLogout();
@@ -211,6 +225,15 @@ export default function Dashboard({ onLogout }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={runAutoCleanup}
+              className="rounded-lg border border-slate-200 p-1.5 text-slate-500 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-emerald-950 dark:hover:text-emerald-400"
+              title="Auto cleanup: delete expired & generate trial"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
             <button
               onClick={toggleTheme}
               className="rounded-lg border border-slate-200 p-1.5 text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"
