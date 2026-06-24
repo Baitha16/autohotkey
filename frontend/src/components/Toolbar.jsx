@@ -66,6 +66,16 @@ export default function Toolbar({
               placeholder="Discord Link"
               className="w-52 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
             />
+            <button
+              onClick={onSaveSettings}
+              disabled={settingsSaving}
+              className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              {settingsSaving ? "Saving..." : "Save"}
+            </button>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
@@ -107,16 +117,6 @@ export default function Toolbar({
                 </div>
               );
             })()}
-            <button
-              onClick={onSaveSettings}
-              disabled={settingsSaving}
-              className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-              {settingsSaving ? "Saving..." : "Save"}
-            </button>
           </>
         ) : (
           <>
