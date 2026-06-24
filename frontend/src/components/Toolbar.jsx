@@ -35,6 +35,8 @@ export default function Toolbar({
   settingsSaving,
   cleanupIntervalDays,
   onSaveCleanupSettings,
+  autoCleanupStatus,
+  onRunAutoCleanup,
 }) {
   const [cleanupDays, setCleanupDays] = useState(cleanupIntervalDays);
   return (
@@ -81,6 +83,30 @@ export default function Toolbar({
                 Set
               </button>
             </div>
+            {autoCleanupStatus && (() => {
+              const remaining = autoCleanupStatus.next_run
+                ? Math.max(0, new Date(autoCleanupStatus.next_run).getTime() - Date.now())
+                : 0;
+              const d = Math.floor(remaining / 86400000);
+              const h = Math.floor((remaining % 86400000) / 3600000);
+              const m = Math.floor((remaining % 3600000) / 60000);
+              const s = Math.floor((remaining % 60000) / 1000);
+              return (
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <span className="font-mono tabular-nums">
+                    {autoCleanupStatus.next_run
+                      ? `Cleanup: ${d > 0 ? `${d}d ` : ""}${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`
+                      : "Cleanup: not scheduled"}
+                  </span>
+                  <button
+                    onClick={onRunAutoCleanup}
+                    className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
+                  >
+                    Run
+                  </button>
+                </div>
+              );
+            })()}
             <button
               onClick={onSaveSettings}
               disabled={settingsSaving}

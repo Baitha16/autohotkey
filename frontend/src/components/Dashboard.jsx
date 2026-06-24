@@ -250,15 +250,6 @@ export default function Dashboard({ onLogout }) {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={runAutoCleanup}
-              className="rounded-lg border border-slate-200 p-1.5 text-slate-500 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-emerald-950 dark:hover:text-emerald-400"
-              title="Auto cleanup: delete expired & generate trial"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-            <button
               onClick={toggleTheme}
               className="rounded-lg border border-slate-200 p-1.5 text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"
               title={dark ? "Switch to light mode" : "Switch to dark mode"}
@@ -287,42 +278,6 @@ export default function Dashboard({ onLogout }) {
       <main className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6">
         <StatsBar stats={stats} />
 
-        {autoCleanupStatus && (() => {
-          const remaining = autoCleanupStatus.next_run
-            ? Math.max(0, new Date(autoCleanupStatus.next_run).getTime() - Date.now())
-            : 0;
-          const d = Math.floor(remaining / 86400000);
-          const h = Math.floor((remaining % 86400000) / 3600000);
-          const m = Math.floor((remaining % 3600000) / 60000);
-          const s = Math.floor((remaining % 60000) / 1000);
-
-          return (
-            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <svg className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {autoCleanupStatus.next_run ? (
-                    <span className="font-mono tabular-nums text-slate-600 dark:text-slate-300">
-                      Next auto-cleanup in {d > 0 ? `${d}d ` : ""}{String(h).padStart(2, "0")}h {String(m).padStart(2, "0")}m {String(s).padStart(2, "0")}s
-                      <span className="ml-2 text-xs text-slate-400">(every {autoCleanupStatus.interval_days} day(s))</span>
-                    </span>
-                  ) : (
-                    <span className="text-slate-500 dark:text-slate-400">Auto-cleanup not yet scheduled</span>
-                  )}
-                </div>
-                <button
-                  onClick={runAutoCleanup}
-                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
-                >
-                  Run Now
-                </button>
-              </div>
-            </div>
-          );
-        })()}
-
         <Toolbar
           type={type}
           onChangeType={changeType}
@@ -349,6 +304,8 @@ export default function Dashboard({ onLogout }) {
           settingsSaving={settingsSaving}
           cleanupIntervalDays={autoCleanupStatus?.interval_days ?? 3}
           onSaveCleanupSettings={saveCleanupSettings}
+          autoCleanupStatus={autoCleanupStatus}
+          onRunAutoCleanup={runAutoCleanup}
         />
 
         {loading ? (
