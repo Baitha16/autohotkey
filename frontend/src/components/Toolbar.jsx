@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../lib/api";
 
 const typeOptions = [
@@ -39,6 +39,7 @@ export default function Toolbar({
   onRunAutoCleanup,
 }) {
   const [cleanupDays, setCleanupDays] = useState(cleanupIntervalDays);
+  useEffect(() => { setCleanupDays(cleanupIntervalDays); }, [cleanupIntervalDays]);
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <div className="flex flex-wrap items-center gap-2">
