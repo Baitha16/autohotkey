@@ -36,6 +36,91 @@ function fail(res, error, status = 400) {
   return res.status(status).json({ success: false, error });
 }
 
+/* ---------- auto-cleanup helpers ---------- */
+
+async function getAutoCleanupSettings() {
+  const { data } = await getSupabase()
+    .from('app_settings')
+    .select('setting_name, setting_value')
+    .in('setting_name', ['auto_cleanup_interval_days', 'auto_cleanup_last_run']);
+
+  let intervalDays = 3;
+  let lastRun = null;
+
+  if (data) {
+    data.forEach(item => {
+      if (item.setting_name === 'auto_cleanup_interval_days') intervalDays = parseInt(item.setting_value) || 3;
+      if (item.setting_name === 'auto_cleanup_last_run') lastRun = item.setting_value;
+    });
+  }
+
+  return { intervalDays, lastRun };
+}
+
+async function upsertSetting(name, value) {
+  const { data } = await getSupabase()
+    .from('app_settings')
+    .select('id')
+    .eq('setting_name', name)
+    .maybeSingle();
+
+  if (data) {
+    return getSupabase()
+      .from('app_settings')
+      .update({ setting_value: value })
+      .eq('setting_name', name);
+  } else {
+    return getSupabase()
+      .from('app_settings')
+      .insert({ setting_name: name, setting_value: value });
+  }
+}
+
+async function runAutoCleanup() {
+  const { intervalDays } = await getAutoCleanupSettings();
+
+  const { data: deleted, error: delError } = await getSupabase()
+    .from("licenses")
+    .delete()
+    .lt("expires_at", new Date().toISOString())
+    .select("id");
+
+  if (delError) throw delError;
+  const deletedCount = deleted?.length ?? 0;
+
+  let license_code;
+  let attempts = 0;
+  while (true) {
+    license_code = `TRIAL-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
+    const { data } = await getSupabase()
+      .from("licenses")
+      .select("id")
+      .eq("license_code", license_code)
+      .maybeSingle();
+    if (!data) break;
+    if (++attempts > 10) return { error: "Could not generate unique code" };
+  }
+
+  const expires_at = new Date(
+    Date.now() + intervalDays * 86400000
+  ).toISOString();
+
+  const { error: insError } = await getSupabase()
+    .from("licenses")
+    .insert({
+      license_code,
+      membership_type: "trial",
+      expires_at,
+      status: "active",
+    });
+
+  if (insError) throw insError;
+
+  await upsertSetting('auto_cleanup_last_run', new Date().toISOString());
+
+  return { deletedCount, generatedCode: license_code, expiresAt: expires_at, intervalDays };
+}
+
 /* ---------- auth middleware ---------- */
 
 function adminAuth(req, res, next) {
@@ -564,61 +649,58 @@ app.post("/api/admin/update-settings", adminAuth, adminLimiter, async (req, res)
 
 app.post("/api/auto-cleanup", adminAuth, adminLimiter, async (req, res) => {
   try {
-    let deletedCount = 0;
-    let generatedCode = null;
-    let generatedExpiry = null;
-
-    // 1. Hapus license yang expired
-    const { data: deleted, error: delError } = await getSupabase()
-      .from("licenses")
-      .delete()
-      .lt("expires_at", new Date().toISOString())
-      .select("id");
-
-    if (delError) throw delError;
-    deletedCount = deleted?.length ?? 0;
-
-    // 2. Generate 1 trial license (3 hari / 72 jam)
-    let license_code;
-    let attempts = 0;
-
-    while (true) {
-      license_code = `TRIAL-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
-      const { data } = await getSupabase()
-        .from("licenses")
-        .select("id")
-        .eq("license_code", license_code)
-        .maybeSingle();
-
-      if (!data) break;
-      if (++attempts > 10) {
-        return fail(res, "Could not generate unique code", 500);
-      }
-    }
-
-    const expires_at = new Date(
-      Date.now() + 3 * 24 * 60 * 60000
-    ).toISOString();
-
-    const { error: insError } = await getSupabase()
-      .from("licenses")
-      .insert({
-        license_code,
-        membership_type: "trial",
-        expires_at,
-        status: "active",
-      });
-
-    if (insError) throw insError;
-
-    generatedCode = license_code;
-    generatedExpiry = expires_at;
+    const result = await runAutoCleanup();
+    if (result.error) return fail(res, result.error, 500);
 
     return ok(res, {
-      deleted_count: deletedCount,
-      generated_code: generatedCode,
-      expires_at: generatedExpiry,
-      message: `Deleted ${deletedCount} expired license(s) & generated trial: ${generatedCode}`,
+      deleted_count: result.deletedCount,
+      generated_code: result.generatedCode,
+      expires_at: result.expiresAt,
+      interval_days: result.intervalDays,
+      message: `Deleted ${result.deletedCount} expired license(s) & generated trial: ${result.generatedCode} (${result.intervalDays}-day interval)`,
+    });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+/* ---------- auto-cleanup status & settings ---------- */
+
+app.get("/api/auto-cleanup/status", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { intervalDays, lastRun } = await getAutoCleanupSettings();
+
+    let nextRun = null;
+    let remainingMs = 0;
+
+    if (lastRun) {
+      const last = new Date(lastRun).getTime();
+      nextRun = new Date(last + intervalDays * 86400000).toISOString();
+      remainingMs = Math.max(0, new Date(nextRun).getTime() - Date.now());
+    }
+
+    return ok(res, {
+      interval_days: intervalDays,
+      last_run: lastRun,
+      next_run: nextRun,
+      remaining_ms: remainingMs,
+    });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+app.post("/api/auto-cleanup/settings", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { interval_days } = req.body;
+    const days = Math.max(1, Math.min(365, parseInt(interval_days) || 3));
+
+    const { error } = await upsertSetting('auto_cleanup_interval_days', String(days));
+    if (error) throw error;
+
+    return ok(res, {
+      interval_days: days,
+      message: `Auto-cleanup interval set to ${days} day(s)`,
     });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
@@ -639,59 +721,28 @@ if (!isVercel) {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 
-  // Auto cleanup & trial generation every 3 days at 00:00
-  cron.schedule("0 0 */3 * *", async () => {
-    console.log("[Cron] Running scheduled cleanup & trial generation...");
+  // Auto cleanup & trial generation every day at 00:00 (checks interval from settings)
+  cron.schedule("0 0 * * *", async () => {
+    console.log("[Cron] Checking scheduled cleanup...");
     try {
-      // 1. Hapus license yang expired
-      const { data: deleted, error: delError } = await getSupabase()
-        .from("licenses")
-        .delete()
-        .lt("expires_at", new Date().toISOString())
-        .select("id");
+      const { intervalDays, lastRun } = await getAutoCleanupSettings();
+      const now = Date.now();
 
-      if (delError) {
-        console.error("[Cron] Delete expired error:", delError.message);
-      } else {
-        console.log(`[Cron] Deleted ${deleted?.length ?? 0} expired license(s)`);
-      }
-
-      // 2. Generate 1 trial license
-      let license_code;
-      let attempts = 0;
-
-      while (true) {
-        license_code = `TRIAL-${randomGroup()}-${randomGroup()}-${randomGroup()}`;
-        const { data } = await getSupabase()
-          .from("licenses")
-          .select("id")
-          .eq("license_code", license_code)
-          .maybeSingle();
-
-        if (!data) break;
-        if (++attempts > 10) {
-          console.error("[Cron] Could not generate unique trial code");
+      if (lastRun) {
+        const elapsed = now - new Date(lastRun).getTime();
+        if (elapsed < intervalDays * 86400000) {
+          const nextIn = Math.ceil((intervalDays * 86400000 - elapsed) / 86400000);
+          console.log(`[Cron] Skipping cleanup, next run in ~${nextIn} day(s)`);
           return;
         }
       }
 
-      const expires_at = new Date(
-        Date.now() + 3 * 24 * 60 * 60000
-      ).toISOString();
-
-      const { error: insError } = await getSupabase()
-        .from("licenses")
-        .insert({
-          license_code,
-          membership_type: "trial",
-          expires_at,
-          status: "active",
-        });
-
-      if (insError) {
-        console.error("[Cron] Trial insert error:", insError.message);
+      console.log(`[Cron] Running cleanup (${intervalDays}-day interval)...`);
+      const result = await runAutoCleanup();
+      if (result.error) {
+        console.error("[Cron] Cleanup error:", result.error);
       } else {
-        console.log(`[Cron] Trial generated: ${license_code} (expires ${expires_at})`);
+        console.log(`[Cron] Deleted ${result.deletedCount} expired, generated trial: ${result.generatedCode}`);
       }
     } catch (err) {
       console.error("[Cron] Error:", err.message);

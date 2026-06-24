@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { api } from "../lib/api";
 
 const typeOptions = [
@@ -32,7 +33,10 @@ export default function Toolbar({
   onSettingsLinkChange,
   onSaveSettings,
   settingsSaving,
+  cleanupIntervalDays,
+  onSaveCleanupSettings,
 }) {
+  const [cleanupDays, setCleanupDays] = useState(cleanupIntervalDays);
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <div className="flex flex-wrap items-center gap-2">
@@ -60,6 +64,23 @@ export default function Toolbar({
               placeholder="Discord Link"
               className="w-52 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
             />
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                value={cleanupDays}
+                onChange={(e) => setCleanupDays(Math.max(1, Math.min(365, +e.target.value || 1)))}
+                min="1"
+                max="365"
+                className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              />
+              <span className="text-xs text-slate-400 dark:text-slate-500">days cleanup</span>
+              <button
+                onClick={() => onSaveCleanupSettings(cleanupDays)}
+                className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400 dark:hover:bg-amber-900"
+              >
+                Set
+              </button>
+            </div>
             <button
               onClick={onSaveSettings}
               disabled={settingsSaving}

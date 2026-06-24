@@ -21,6 +21,7 @@ export default function Dashboard({ onLogout }) {
   const [settingsVersion, setSettingsVersion] = useState("1.0.0");
   const [settingsLink, setSettingsLink] = useState("https://discord.gg/NQAnnRZcAx");
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [autoCleanupStatus, setAutoCleanupStatus] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [confirmState, setConfirmState] = useState(null);
   const [promptState, setPromptState] = useState(null);
@@ -73,6 +74,27 @@ export default function Dashboard({ onLogout }) {
     } catch (_) {}
   }, []);
 
+  const loadAutoCleanupStatus = useCallback(async () => {
+    try {
+      const d = await api("/api/auto-cleanup/status");
+      if (d.success) setAutoCleanupStatus(d);
+    } catch (_) {}
+  }, []);
+
+  const saveCleanupSettings = async (intervalDays) => {
+    try {
+      const d = await api("/api/auto-cleanup/settings", {
+        method: "POST",
+        body: JSON.stringify({ interval_days: intervalDays }),
+      });
+      if (d.success) add(`Cleanup interval: ${d.interval_days} day(s)`);
+      else add(d.error, true);
+      loadAutoCleanupStatus();
+    } catch (e) {
+      add(e.message, true);
+    }
+  };
+
   const saveSettings = async () => {
     setSettingsSaving(true);
     try {
@@ -92,9 +114,11 @@ export default function Dashboard({ onLogout }) {
   useEffect(() => {
     load();
     loadSettings();
+    loadAutoCleanupStatus();
     const id = setInterval(() => load(true), 10000);
-    return () => clearInterval(id);
-  }, [load, loadSettings]);
+    const id2 = setInterval(() => loadAutoCleanupStatus(), 1000);
+    return () => { clearInterval(id); clearInterval(id2); };
+  }, [load, loadSettings, loadAutoCleanupStatus]);
 
   function isExpired(l) {
     return l.membership_type !== "lifetime" && l.expires_at && new Date(l.expires_at).getTime() <= Date.now();
@@ -263,6 +287,42 @@ export default function Dashboard({ onLogout }) {
       <main className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6">
         <StatsBar stats={stats} />
 
+        {autoCleanupStatus && (() => {
+          const remaining = autoCleanupStatus.next_run
+            ? Math.max(0, new Date(autoCleanupStatus.next_run).getTime() - Date.now())
+            : 0;
+          const d = Math.floor(remaining / 86400000);
+          const h = Math.floor((remaining % 86400000) / 3600000);
+          const m = Math.floor((remaining % 3600000) / 60000);
+          const s = Math.floor((remaining % 60000) / 1000);
+
+          return (
+            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {autoCleanupStatus.next_run ? (
+                    <span className="font-mono tabular-nums text-slate-600 dark:text-slate-300">
+                      Next auto-cleanup in {d > 0 ? `${d}d ` : ""}{String(h).padStart(2, "0")}h {String(m).padStart(2, "0")}m {String(s).padStart(2, "0")}s
+                      <span className="ml-2 text-xs text-slate-400">(every {autoCleanupStatus.interval_days} day(s))</span>
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 dark:text-slate-400">Auto-cleanup not yet scheduled</span>
+                  )}
+                </div>
+                <button
+                  onClick={runAutoCleanup}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
+                >
+                  Run Now
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         <Toolbar
           type={type}
           onChangeType={changeType}
@@ -287,6 +347,8 @@ export default function Dashboard({ onLogout }) {
           onSettingsLinkChange={setSettingsLink}
           onSaveSettings={saveSettings}
           settingsSaving={settingsSaving}
+          cleanupIntervalDays={autoCleanupStatus?.interval_days ?? 3}
+          onSaveCleanupSettings={saveCleanupSettings}
         />
 
         {loading ? (
