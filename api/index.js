@@ -58,13 +58,13 @@ async function getAutoCleanupSettings() {
 }
 
 async function upsertSetting(name, value) {
-  const { data } = await getSupabase()
+  const { data: existing } = await getSupabase()
     .from('app_settings')
-    .select('id')
+    .select('setting_name')
     .eq('setting_name', name)
     .maybeSingle();
 
-  if (data) {
+  if (existing) {
     return getSupabase()
       .from('app_settings')
       .update({ setting_value: value })
@@ -624,18 +624,12 @@ app.post("/api/admin/update-settings", adminAuth, adminLimiter, async (req, res)
     const { new_version, new_link } = req.body;
 
     if (new_version) {
-      const { error: errVer } = await getSupabase()
-        .from('app_settings')
-        .update({ setting_value: new_version })
-        .eq('setting_name', 'latest_version');
+      const { error: errVer } = await upsertSetting('latest_version', new_version);
       if (errVer) throw errVer;
     }
 
     if (new_link) {
-      const { error: errLink } = await getSupabase()
-        .from('app_settings')
-        .update({ setting_value: new_link })
-        .eq('setting_name', 'discord_link');
+      const { error: errLink } = await upsertSetting('discord_link', new_link);
       if (errLink) throw errLink;
     }
 
@@ -697,6 +691,17 @@ app.post("/api/auto-cleanup/settings", adminAuth, adminLimiter, async (req, res)
 
     const { error } = await upsertSetting('auto_cleanup_interval_days', String(days));
     if (error) throw error;
+
+    // Start countdown immediately if cleanup has never run
+    const { data: lastRunRow } = await getSupabase()
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_name', 'auto_cleanup_last_run')
+      .maybeSingle();
+
+    if (!lastRunRow) {
+      await upsertSetting('auto_cleanup_last_run', new Date().toISOString());
+    }
 
     return ok(res, {
       interval_days: days,
