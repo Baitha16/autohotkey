@@ -726,9 +726,8 @@ if (!isVercel) {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 
-  // Auto cleanup & trial generation every day at 00:00 (checks interval from settings)
-  cron.schedule("0 0 * * *", async () => {
-    console.log("[Cron] Checking scheduled cleanup...");
+  // Auto cleanup & trial generation every minute (runs when countdown expires)
+  cron.schedule("* * * * *", async () => {
     try {
       const { intervalDays, lastRun } = await getAutoCleanupSettings();
       const now = Date.now();
@@ -736,8 +735,6 @@ if (!isVercel) {
       if (lastRun) {
         const elapsed = now - new Date(lastRun).getTime();
         if (elapsed < intervalDays * 86400000) {
-          const nextIn = Math.ceil((intervalDays * 86400000 - elapsed) / 86400000);
-          console.log(`[Cron] Skipping cleanup, next run in ~${nextIn} day(s)`);
           return;
         }
       }
