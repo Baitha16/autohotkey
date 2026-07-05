@@ -24,3 +24,8 @@ verify_jwt = false
 
 [functions.update-license]
 verify_jwt = false
+
+[functions.auto-cleanup]
+verify_jwt = false
+# Run every 5 minutes to ensure cleanup runs soon after countdown expires
+cron = "*/5 * * * *"
