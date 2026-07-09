@@ -19,7 +19,7 @@ serve(async (req) => {
   if (cors) return cors;
 
   try {
-    const { license_code, hwid, program_type } = await req.json();
+    const { license_code, hwid } = await req.json();
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return new Response(
@@ -57,16 +57,6 @@ serve(async (req) => {
       );
     }
 
-    // PROGRAM TYPE BINDING
-    if (data.program_type) {
-      if (!program_type || program_type !== data.program_type) {
-        return new Response(
-          JSON.stringify({ success: false, error: "License is bound to a different program" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
-        );
-      }
-    }
-
     // HWID multi-slot binding logic
     const maxSlots = data.hwid_slots || 1;
     let hwids = parseHwids(data.hwid);
@@ -83,13 +73,9 @@ serve(async (req) => {
       hwids.push(hwid);
     }
 
-    const updateFields: Record<string, unknown> = { hwid: JSON.stringify(hwids) };
-    if (!data.program_type && program_type) {
-      updateFields.program_type = program_type;
-    }
     await supabase
       .from("licenses")
-      .update(updateFields)
+      .update({ hwid: JSON.stringify(hwids) })
       .eq("license_code", license_code);
 
     const now = new Date();
