@@ -151,6 +151,7 @@ export default function Toolbar({
               onChange={(e) => setProgramType(e.target.value)}
               className="w-28 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
             >
+              <option value="">- Auto Bind -</option>
               <option value="Piano">Piano</option>
               <option value="Point Blank">Point Blank</option>
             </select>
