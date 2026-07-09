@@ -1,7 +1,58 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { api } from "../lib/api";
 
 const PAGE_SIZE = 15;
+
+function parseHwids(hwid) {
+  if (!hwid) return [];
+  try { const p = JSON.parse(hwid); return Array.isArray(p) ? p : []; }
+  catch { return [hwid]; }
+}
+
+function HwidCell({ hwid, slots }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const list = parseHwids(hwid);
+  const count = list.length;
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  if (!hwid) return <span className="text-slate-300 dark:text-slate-600">-</span>;
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-0.5 text-xs font-mono text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700"
+      >
+        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
+        </svg>
+        {count}/{slots || 1}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-600 dark:bg-slate-800">
+          <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">HWID List ({count}/{slots || 1})</div>
+          {list.length === 0 ? (
+            <div className="px-1 text-xs text-slate-400">No HWID bound</div>
+          ) : (
+            list.map((h, i) => (
+              <div key={i} className="flex items-center gap-2 rounded px-1 py-0.5 text-xs font-mono text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700">
+                <span className="shrink-0 text-[10px] text-slate-400">{i + 1}.</span>
+                <span className="truncate">{h}</span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function isExpired(expiresAt) {
   return !expiresAt || new Date(expiresAt).getTime() <= Date.now();
@@ -229,7 +280,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                 <span className="text-slate-400">Owner</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.owner || "-"}</span>
                 <span className="text-slate-400">Program</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.program_type || "-"}</span>
                 <span className="text-slate-400">Expires</span><CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
-                  {l.hwid && <><span className="text-slate-400">HWID</span><span className="font-mono text-slate-500 truncate">{(() => { try { const a = JSON.parse(l.hwid); return Array.isArray(a) ? `${a.length}/${l.hwid_slots||1}` : '1/1'; } catch { return '1/1'; } })()}</span></>}
+                  {l.hwid && <><span className="text-slate-400">HWID</span><HwidCell hwid={l.hwid} slots={l.hwid_slots} /></>}
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3 dark:border-slate-700">
                 <button onClick={() => onAct(l.license_code, "update-program", "Program Updated")} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400">Program</button>
@@ -328,8 +379,8 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                   <td className="px-3 py-3">
                     <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">
-                    {l.hwid ? (() => { try { const a = JSON.parse(l.hwid); return Array.isArray(a) ? `${a.length}/${l.hwid_slots||1}` : '1/1'; } catch { return '1/1'; } })() : <span className="text-slate-300 dark:text-slate-600">-</span>}
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <HwidCell hwid={l.hwid} slots={l.hwid_slots} />
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1">
