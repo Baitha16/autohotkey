@@ -336,8 +336,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
     let license_code;
 
     if (useEZ) {
-      const progSuffix = program_type ? `-${program_type.replace(/\s+/g, '')}` : '';
-      license_code = `${prefix}-${phoneStr}${progSuffix}`;
+      license_code = `${prefix}-${phoneStr}`;
       const newExpiry =
         membership_type === "lifetime"
           ? new Date(Date.now() + 36500 * 86400000).toISOString()
@@ -374,9 +373,9 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         expires_at: newExpiry,
         status: "active",
         hwid: null,
-        program_type: program_type || null,
       };
       if (owner != null) insertData.owner = owner;
+      if (program_type != null) insertData.program_type = program_type;
       if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
       const { error } = await getSupabase().from("licenses").insert(insertData);
 
