@@ -210,7 +210,7 @@ app.post("/api/verify-license", async (req, res) => {
       hwids.push(hwid);
     }
 
-    const updateFields = { hwid: JSON.stringify(hwids) };
+    const updateFields = { hwid: JSON.stringify(hwids) } as Record<string, unknown>;
     if (!data.program_type && program_type) {
       updateFields.program_type = program_type;
     }
