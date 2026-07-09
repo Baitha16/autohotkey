@@ -17,6 +17,7 @@ export default function Dashboard({ onLogout }) {
   const [owner, setOwner] = useState("");
   const [programType, setProgramType] = useState("");
   const [trialMinutes, setTrialMinutes] = useState(60);
+  const [hwidSlots, setHwidSlots] = useState(1);
   const [search, setSearch] = useState("");
   const [settingsVersion, setSettingsVersion] = useState("1.0.0");
   const [settingsLink, setSettingsLink] = useState("https://discord.gg/NQAnnRZcAx");
@@ -140,6 +141,7 @@ export default function Dashboard({ onLogout }) {
     if (phone.trim()) body.phone = phone.trim();
     if (owner.trim()) body.owner = owner.trim();
     if (programType.trim()) body.program_type = programType.trim();
+    if (hwidSlots > 1) body.hwid_slots = hwidSlots;
     try {
       const d = await api("/api/generate-code", { method: "POST", body: JSON.stringify(body) });
       if (d.success) add(`Generated: ${d.license_code}`);
@@ -291,6 +293,8 @@ export default function Dashboard({ onLogout }) {
           setProgramType={setProgramType}
           trialMinutes={trialMinutes}
           setTrialMinutes={setTrialMinutes}
+          hwidSlots={hwidSlots}
+          onHwidSlotsChange={setHwidSlots}
           search={search}
           setSearch={setSearch}
           onGenerate={generate}

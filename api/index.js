@@ -121,6 +121,24 @@ async function runAutoCleanup() {
   return { deletedCount, generatedCode: license_code, expiresAt: expires_at, intervalDays };
 }
 
+/* ---------- HWID helpers ---------- */
+
+function parseHwids(hwid) {
+  if (!hwid) return [];
+  try {
+    const parsed = JSON.parse(hwid);
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch {
+    return [hwid];
+  }
+}
+
+function formatHwids(hwid) {
+  const list = parseHwids(hwid);
+  return list.length;
+}
+
 /* ---------- auth middleware ---------- */
 
 function adminAuth(req, res, next) {
@@ -159,10 +177,10 @@ app.post("/api/verify-license", async (req, res) => {
       return fail(res, "HWID is required for verification");
     }
 
-    // Mengambil data lisensi termasuk kolom hwid
+    // Mengambil data lisensi termasuk kolom hwid & hwid_slots
     const { data, error } = await getSupabase()
       .from("licenses")
-      .select("license_code, membership_type, expires_at, status, owner, program_type, hwid")
+      .select("license_code, membership_type, expires_at, status, owner, program_type, hwid, hwid_slots")
       .eq("license_code", license_code)
       .maybeSingle();
 
@@ -172,19 +190,23 @@ app.post("/api/verify-license", async (req, res) => {
       return fail(res, `License is ${data.status}`, 403);
     }
 
-    // LOGIKA PENGIKATAN HWID
-    let boundHwid = data.hwid;
-    if (!boundHwid) {
-      // Jika HWID masih kosong, ikat HWID pertama kali perangkat login
-      await getSupabase()
-        .from("licenses")
-        .update({ hwid: hwid })
-        .eq("license_code", license_code);
-      boundHwid = hwid;
-    } else if (boundHwid !== hwid) {
-      // Jika HWID berbeda dengan yang tersimpan, tolak akses!
-      return fail(res, "License is already bound to another device", 403);
+    // LOGIKA PENGIKATAN HWID (MULTI-SLOT)
+    const maxSlots = data.hwid_slots || 1;
+    let hwids = parseHwids(data.hwid);
+
+    if (hwids.length === 0) {
+      hwids = [hwid];
+    } else if (!hwids.includes(hwid)) {
+      if (hwids.length >= maxSlots) {
+        return fail(res, "License HWID slots are full", 403);
+      }
+      hwids.push(hwid);
     }
+
+    await getSupabase()
+      .from("licenses")
+      .update({ hwid: JSON.stringify(hwids) })
+      .eq("license_code", license_code);
 
     const now = new Date();
     const expires = new Date(data.expires_at);
@@ -207,7 +229,7 @@ app.post("/api/verify-license", async (req, res) => {
       expires_at: data.expires_at,
       owner: data.owner,
       program_type: data.program_type,
-      hwid: boundHwid
+      hwid_slots: data.hwid_slots || 1
     });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
@@ -277,7 +299,7 @@ app.get("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
 
 app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { membership_type, duration_days, phone, program_type } = req.body;
+    const { membership_type, duration_days, phone, program_type, hwid_slots } = req.body;
     const { owner } = req.body;
 
     if (!isValidMembershipType(membership_type)) {
@@ -324,12 +346,14 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         const updateData = { membership_type, expires_at: finalExpiry };
         if (owner != null) updateData.owner = owner;
         if (program_type != null) updateData.program_type = program_type;
+        if (hwid_slots != null) updateData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
         await getSupabase()
           .from("licenses")
           .update(updateData)
           .eq("license_code", license_code);
 
-        return ok(res, { license_code, expires_at: finalExpiry });
+        const slots = updateData.hwid_slots || 1;
+        return ok(res, { license_code, expires_at: finalExpiry, hwid_slots: slots });
       }
 
       const insertData = {
@@ -337,14 +361,16 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         membership_type,
         expires_at: newExpiry,
         status: "active",
-        hwid: null // Belum terikat HWID saat digenerate admin
+        hwid: null,
       };
       if (owner != null) insertData.owner = owner;
       if (program_type != null) insertData.program_type = program_type;
+      if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
       const { error } = await getSupabase().from("licenses").insert(insertData);
 
       if (error) throw error;
-      return ok(res, { license_code, expires_at: newExpiry });
+      const slots2 = insertData.hwid_slots || 1;
+      return ok(res, { license_code, expires_at: newExpiry, hwid_slots: slots2 });
     }
 
     let attempts = 0;
@@ -372,14 +398,16 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       membership_type,
       expires_at,
       status: "active",
-      hwid: null // Belum terikat HWID saat digenerate admin
+      hwid: null,
     };
     if (owner != null) insertData.owner = owner;
     if (program_type != null) insertData.program_type = program_type;
+    if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
     const { error } = await getSupabase().from("licenses").insert(insertData);
 
     if (error) throw error;
-    return ok(res, { license_code, expires_at });
+    const slots3 = insertData.hwid_slots || 1;
+    return ok(res, { license_code, expires_at, hwid_slots: slots3 });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
   }

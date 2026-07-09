@@ -3,12 +3,23 @@ import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { supabase } from "../_shared/supabase.ts";
 import { isValidLicenseCode } from "../_shared/validation.ts";
 
+function parseHwids(hwid: string | null): string[] {
+  if (!hwid) return [];
+  try {
+    const parsed = JSON.parse(hwid);
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch {
+    return [hwid];
+  }
+}
+
 serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
   try {
-    const { license_code } = await req.json();
+    const { license_code, hwid } = await req.json();
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return new Response(
@@ -17,9 +28,16 @@ serve(async (req) => {
       );
     }
 
+    if (!hwid) {
+      return new Response(
+        JSON.stringify({ success: false, error: "HWID is required for verification" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      );
+    }
+
     const { data, error } = await supabase
       .from("licenses")
-      .select("license_code, membership_type, expires_at, status, program_type")
+      .select("license_code, membership_type, expires_at, status, program_type, hwid, hwid_slots")
       .eq("license_code", license_code)
       .maybeSingle();
 
@@ -38,6 +56,27 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
       );
     }
+
+    // HWID multi-slot binding logic
+    const maxSlots = data.hwid_slots || 1;
+    let hwids = parseHwids(data.hwid);
+
+    if (hwids.length === 0) {
+      hwids = [hwid];
+    } else if (!hwids.includes(hwid)) {
+      if (hwids.length >= maxSlots) {
+        return new Response(
+          JSON.stringify({ success: false, error: "License HWID slots are full" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+        );
+      }
+      hwids.push(hwid);
+    }
+
+    await supabase
+      .from("licenses")
+      .update({ hwid: JSON.stringify(hwids) })
+      .eq("license_code", license_code);
 
     const now = new Date();
     const expires = new Date(data.expires_at);
@@ -65,6 +104,7 @@ serve(async (req) => {
         membership_type: data.membership_type,
         expires_at: data.expires_at,
         program_type: data.program_type,
+        hwid_slots: maxSlots,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

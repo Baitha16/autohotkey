@@ -229,7 +229,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                 <span className="text-slate-400">Owner</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.owner || "-"}</span>
                 <span className="text-slate-400">Program</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.program_type || "-"}</span>
                 <span className="text-slate-400">Expires</span><CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
-                {l.hwid && <><span className="text-slate-400">HWID</span><span className="font-mono text-slate-500 truncate">{l.hwid}</span></>}
+                  {l.hwid && <><span className="text-slate-400">HWID</span><span className="font-mono text-slate-500 truncate">{(() => { try { const a = JSON.parse(l.hwid); return Array.isArray(a) ? `${a.length}/${l.hwid_slots||1}` : '1/1'; } catch { return '1/1'; } })()}</span></>}
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3 dark:border-slate-700">
                 <button onClick={() => onAct(l.license_code, "update-program", "Program Updated")} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-600 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-violet-950 dark:hover:text-violet-400">Program</button>
@@ -329,7 +329,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                     <StatusCell expiresAt={l.expires_at} type={l.membership_type} status={l.status} />
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">
-                    {l.hwid || <span className="text-slate-300 dark:text-slate-600">-</span>}
+                    {l.hwid ? (() => { try { const a = JSON.parse(l.hwid); return Array.isArray(a) ? `${a.length}/${l.hwid_slots||1}` : '1/1'; } catch { return '1/1'; } })() : <span className="text-slate-300 dark:text-slate-600">-</span>}
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1">
