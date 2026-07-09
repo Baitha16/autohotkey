@@ -167,7 +167,7 @@ const trialLimiter = rateLimit({
 
 app.post("/api/verify-license", async (req, res) => {
   try {
-    const { license_code, hwid } = req.body;
+    const { license_code, hwid, program_type } = req.body;
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return fail(res, "Invalid license code format");
@@ -190,6 +190,13 @@ app.post("/api/verify-license", async (req, res) => {
       return fail(res, `License is ${data.status}`, 403);
     }
 
+    // PROGRAM TYPE BINDING — lock program_type on first use, enforce match afterward
+    if (data.program_type) {
+      if (!program_type || program_type !== data.program_type) {
+        return fail(res, "License is bound to a different program", 403);
+      }
+    }
+
     // LOGIKA PENGIKATAN HWID (MULTI-SLOT)
     const maxSlots = data.hwid_slots || 1;
     let hwids = parseHwids(data.hwid);
@@ -203,9 +210,13 @@ app.post("/api/verify-license", async (req, res) => {
       hwids.push(hwid);
     }
 
+    const updateFields = { hwid: JSON.stringify(hwids) } as Record<string, unknown>;
+    if (!data.program_type && program_type) {
+      updateFields.program_type = program_type;
+    }
     await getSupabase()
       .from("licenses")
-      .update({ hwid: JSON.stringify(hwids) })
+      .update(updateFields)
       .eq("license_code", license_code);
 
     const now = new Date();
