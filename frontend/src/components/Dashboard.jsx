@@ -15,7 +15,7 @@ export default function Dashboard({ onLogout }) {
   const [days, setDays] = useState(30);
   const [phone, setPhone] = useState("");
   const [owner, setOwner] = useState("");
-  const [programType, setProgramType] = useState("");
+  const [programType, setProgramType] = useState("Piano");
   const [trialMinutes, setTrialMinutes] = useState(60);
   const [hwidSlots, setHwidSlots] = useState(1);
   const [search, setSearch] = useState("");
