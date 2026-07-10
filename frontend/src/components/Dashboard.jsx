@@ -198,7 +198,7 @@ export default function Dashboard({ onLogout }) {
 
     let body = { license_code: code };
     if (endpoint === "update-program") {
-      const d = await prompt(`Program type for ${code}`, "", { label: "Program name", inputType: "text", buttonLabel: "Save" });
+      const d = await prompt(`Program type for ${code}`, "Piano", { label: "Program name", buttonLabel: "Save", options: ["Piano", "Point Blank"] });
       if (d === null) return;
       body.program_type = d;
     }

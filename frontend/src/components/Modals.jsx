@@ -46,6 +46,7 @@ export function PromptModal({ state, close }) {
   const label = state.label || "Duration (days)";
   const inputType = state.inputType || "number";
   const buttonLabel = state.buttonLabel || "Extend";
+  const options = state.options;
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={close}>
@@ -56,14 +57,27 @@ export function PromptModal({ state, close }) {
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{state.msg}</h3>
         <div className="mt-4">
           <label className="mb-1.5 block text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
-          <input
-            type={inputType}
-            value={val}
-            onChange={(e) => setVal(e.target.value)}
-            min={1}
-            autoFocus
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
-          />
+          {options ? (
+            <select
+              value={val}
+              onChange={(e) => setVal(e.target.value)}
+              autoFocus
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            >
+              {options.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type={inputType}
+              value={val}
+              onChange={(e) => setVal(e.target.value)}
+              min={1}
+              autoFocus
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            />
+          )}
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button
