@@ -17,10 +17,13 @@ export default function Dashboard({ onLogout }) {
   const [owner, setOwner] = useState("");
   const [programType, setProgramType] = useState("Piano");
   const [trialMinutes, setTrialMinutes] = useState(60);
+  const [trialProgramType, setTrialProgramType] = useState("Piano");
   const [hwidSlots, setHwidSlots] = useState(1);
   const [search, setSearch] = useState("");
-  const [settingsVersion, setSettingsVersion] = useState("1.0.0");
-  const [settingsLink, setSettingsLink] = useState("https://discord.gg/NQAnnRZcAx");
+  const [pianoVersion, setPianoVersion] = useState("1.0.0");
+  const [pianoLink, setPianoLink] = useState("https://discord.gg/NQAnnRZcAx");
+  const [pointblankVersion, setPointblankVersion] = useState("1.0.0");
+  const [pointblankLink, setPointblankLink] = useState("https://discord.gg/NQAnnRZcAx");
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [autoCleanupStatus, setAutoCleanupStatus] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -69,8 +72,12 @@ export default function Dashboard({ onLogout }) {
     try {
       const d = await api("/api/admin/settings");
       if (d.success && d.settings) {
-        if (d.settings.latest_version) setSettingsVersion(d.settings.latest_version);
-        if (d.settings.discord_link) setSettingsLink(d.settings.discord_link);
+        if (d.settings.piano_latest_version) setPianoVersion(d.settings.piano_latest_version);
+        else if (d.settings.latest_version) setPianoVersion(d.settings.latest_version);
+        if (d.settings.piano_discord_link) setPianoLink(d.settings.piano_discord_link);
+        else if (d.settings.discord_link) setPianoLink(d.settings.discord_link);
+        if (d.settings.pointblank_latest_version) setPointblankVersion(d.settings.pointblank_latest_version);
+        if (d.settings.pointblank_discord_link) setPointblankLink(d.settings.pointblank_discord_link);
       }
     } catch (_) {}
   }, []);
@@ -101,7 +108,12 @@ export default function Dashboard({ onLogout }) {
     try {
       const d = await api("/api/admin/update-settings", {
         method: "POST",
-        body: JSON.stringify({ new_version: settingsVersion, new_link: settingsLink }),
+        body: JSON.stringify({
+          piano_version: pianoVersion,
+          piano_link: pianoLink,
+          pointblank_version: pointblankVersion,
+          pointblank_link: pointblankLink,
+        }),
       });
       if (d.success) add("Settings saved");
       else add(d.error, true);
@@ -155,7 +167,7 @@ export default function Dashboard({ onLogout }) {
   const genTrial = async () => {
     try {
       const body = { trial_minutes: trialMinutes };
-      if (programType.trim()) body.program_type = programType.trim();
+      if (trialProgramType.trim()) body.program_type = trialProgramType.trim();
       const d = await api("/api/generate-trial", { method: "POST", body: JSON.stringify(body) });
       const hrs = Math.floor(trialMinutes / 60);
       const mins = trialMinutes % 60;
@@ -293,6 +305,8 @@ export default function Dashboard({ onLogout }) {
           setProgramType={setProgramType}
           trialMinutes={trialMinutes}
           setTrialMinutes={setTrialMinutes}
+          trialProgramType={trialProgramType}
+          setTrialProgramType={setTrialProgramType}
           hwidSlots={hwidSlots}
           onHwidSlotsChange={setHwidSlots}
           search={search}
@@ -300,10 +314,14 @@ export default function Dashboard({ onLogout }) {
           onGenerate={generate}
           onTrial={genTrial}
           loading={loading}
-          settingsVersion={settingsVersion}
-          onSettingsVersionChange={setSettingsVersion}
-          settingsLink={settingsLink}
-          onSettingsLinkChange={setSettingsLink}
+          pianoVersion={pianoVersion}
+          onPianoVersionChange={setPianoVersion}
+          pianoLink={pianoLink}
+          onPianoLinkChange={setPianoLink}
+          pointblankVersion={pointblankVersion}
+          onPointblankVersionChange={setPointblankVersion}
+          pointblankLink={pointblankLink}
+          onPointblankLinkChange={setPointblankLink}
           onSaveSettings={saveSettings}
           settingsSaving={settingsSaving}
           cleanupIntervalDays={autoCleanupStatus?.interval_days ?? 3}

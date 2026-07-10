@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { supabase } from "../_shared/supabase.ts";
-import { isValidMembershipType, isValidDuration, isValidPhone } from "../_shared/validation.ts";
+import { isValidMembershipType, isValidDuration } from "../_shared/validation.ts";
 
 function randomGroup(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -35,18 +35,13 @@ serve(async (req) => {
       membership_type === "yearly" ? "YL" :
       "LT";
 
-    const useEZ = phone !== undefined && phone !== null && phone !== "";
-    if (useEZ && !isValidPhone(phone)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Phone must be 9-15 digits" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
-      );
-    }
+    const phoneStr = phone != null ? String(phone).trim().replace(/\s+/g, "_").replace(/[^A-Za-z0-9@._-]/g, "") : "";
+    const useEZ = phoneStr !== "";
 
     let license_code: string;
 
     if (useEZ) {
-      license_code = `${prefix}-${phone}`;
+      license_code = `${prefix}-${phoneStr}`;
       const expires_at = membership_type === "lifetime"
         ? new Date(Date.now() + 36500 * 86400000).toISOString()
         : new Date(Date.now() + duration_days * 86400000).toISOString();

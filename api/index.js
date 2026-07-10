@@ -7,7 +7,6 @@ import cron from "node-cron";
 import { getSupabase } from "../src/db/supabase.js";
 import {
   isValidLicenseCode,
-  isValidPhone,
   isValidMembershipType,
   isValidDuration,
 } from "../src/validators/license.js";
@@ -327,11 +326,8 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       membership_type === "yearly" ? "YL" :
       "LT";
 
-    const phoneStr = phone != null ? String(phone).trim() : "";
+    const phoneStr = phone != null ? String(phone).trim().replace(/\s+/g, "_").replace(/[^A-Za-z0-9@._-]/g, "") : "";
     const useEZ = phoneStr !== "";
-    if (useEZ && !isValidPhone(phoneStr)) {
-      return fail(res, "Phone must be 9-15 digits");
-    }
 
     let license_code;
 
@@ -614,17 +610,20 @@ app.get("/api/check-update", async (req, res) => {
 
     if (error) throw error;
 
+    const program = req.query.program || "Piano";
+
     let latest_version = "1.0.0";
     let update_link = "https://discord.gg/NQAnnRZcAx";
+    const prefix = program === "Point Blank" ? "pointblank_" : "piano_";
 
     if (data) {
       data.forEach(item => {
-        if (item.setting_name === "latest_version") latest_version = item.setting_value;
-        if (item.setting_name === "discord_link") update_link = item.setting_value;
+        if (item.setting_name === `${prefix}latest_version`) latest_version = item.setting_value;
+        if (item.setting_name === `${prefix}discord_link`) update_link = item.setting_value;
       });
     }
 
-    return ok(res, { latest_version, update_link });
+    return ok(res, { latest_version, update_link, program });
   } catch (err) {
     return ok(res, {
       latest_version: "1.0.0",
@@ -660,16 +659,31 @@ app.get("/api/admin/settings", adminAuth, adminLimiter, async (req, res) => {
 
 app.post("/api/admin/update-settings", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { new_version, new_link } = req.body;
+    const { piano_version, piano_link, pointblank_version, pointblank_link } = req.body;
 
-    if (new_version) {
-      const { error: errVer } = await upsertSetting('latest_version', new_version);
+    if (piano_version != null) {
+      const { error: errVer } = await upsertSetting('piano_latest_version', piano_version);
       if (errVer) throw errVer;
     }
-
-    if (new_link) {
-      const { error: errLink } = await upsertSetting('discord_link', new_link);
+    if (piano_link != null) {
+      const { error: errLink } = await upsertSetting('piano_discord_link', piano_link);
       if (errLink) throw errLink;
+    }
+    if (pointblank_version != null) {
+      const { error: errVer } = await upsertSetting('pointblank_latest_version', pointblank_version);
+      if (errVer) throw errVer;
+    }
+    if (pointblank_link != null) {
+      const { error: errLink } = await upsertSetting('pointblank_discord_link', pointblank_link);
+      if (errLink) throw errLink;
+    }
+
+    // Legacy fallback — keep old keys in sync with piano
+    if (piano_version != null) {
+      await upsertSetting('latest_version', piano_version);
+    }
+    if (piano_link != null) {
+      await upsertSetting('discord_link', piano_link);
     }
 
     return ok(res, { message: "App settings updated successfully" });

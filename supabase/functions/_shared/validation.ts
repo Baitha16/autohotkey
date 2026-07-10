@@ -1,11 +1,11 @@
 export function isValidLicenseCode(code: string): boolean {
-  const wlCode = /^WL-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|\d{9,15}(?:-[A-Za-z0-9]+)?)$/;
-  const mlCode = /^ML-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|\d{9,15}(?:-[A-Za-z0-9]+)?)$/;
-  const ylCode = /^YL-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|\d{9,15}(?:-[A-Za-z0-9]+)?)$/;
-  const ltCode = /^LT-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|\d{9,15}(?:-[A-Za-z0-9]+)?)$/;
+  const wlCode = /^WL-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|[A-Za-z0-9@._-]+)$/;
+  const mlCode = /^ML-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|[A-Za-z0-9@._-]+)$/;
+  const ylCode = /^YL-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|[A-Za-z0-9@._-]+)$/;
+  const ltCode = /^LT-(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}|[A-Za-z0-9@._-]+)$/;
   const vip = /^VIP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   const trial = /^TRIAL-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-  const ez = /^EZ-\d{9,15}(?:-[A-Z0-9]{4}-[A-Z0-9]{4}|-[A-Za-z0-9]+)?$/;
+  const ez = /^EZ-[A-Za-z0-9@._-]+$/;
   return vip.test(code) || trial.test(code) || wlCode.test(code) || mlCode.test(code) || ylCode.test(code) || ltCode.test(code) || ez.test(code);
 }
 

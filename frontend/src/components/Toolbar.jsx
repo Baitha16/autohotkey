@@ -22,6 +22,8 @@ export default function Toolbar({
   setProgramType,
   trialMinutes,
   setTrialMinutes,
+  trialProgramType,
+  setTrialProgramType,
   hwidSlots,
   onHwidSlotsChange,
   search,
@@ -29,10 +31,14 @@ export default function Toolbar({
   onGenerate,
   onTrial,
   loading,
-  settingsVersion,
-  onSettingsVersionChange,
-  settingsLink,
-  onSettingsLinkChange,
+  pianoVersion,
+  onPianoVersionChange,
+  pianoLink,
+  onPianoLinkChange,
+  pointblankVersion,
+  onPointblankVersionChange,
+  pointblankLink,
+  onPointblankLinkChange,
   onSaveSettings,
   settingsSaving,
   cleanupIntervalDays,
@@ -57,18 +63,36 @@ export default function Toolbar({
 
         {type === "settings" ? (
           <>
-            <input
-              value={settingsVersion}
-              onChange={(e) => onSettingsVersionChange(e.target.value)}
-              placeholder="App Version"
-              className="w-28 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
-            />
-            <input
-              value={settingsLink}
-              onChange={(e) => onSettingsLinkChange(e.target.value)}
-              placeholder="Discord Link"
-              className="w-52 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
-            />
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50">
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Piano</span>
+              <input
+                value={pianoVersion}
+                onChange={(e) => onPianoVersionChange(e.target.value)}
+                placeholder="Version"
+                className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+              />
+              <input
+                value={pianoLink}
+                onChange={(e) => onPianoLinkChange(e.target.value)}
+                placeholder="Discord Link"
+                className="w-44 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50">
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">P.Blank</span>
+              <input
+                value={pointblankVersion}
+                onChange={(e) => onPointblankVersionChange(e.target.value)}
+                placeholder="Version"
+                className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+              />
+              <input
+                value={pointblankLink}
+                onChange={(e) => onPointblankLinkChange(e.target.value)}
+                placeholder="Discord Link"
+                className="w-44 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+              />
+            </div>
             <button
               onClick={onSaveSettings}
               disabled={settingsSaving}
@@ -158,7 +182,7 @@ export default function Toolbar({
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="Phone (optional code)"
+              placeholder="Custom ID (optional)"
               className="w-32 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
             />
 
@@ -177,16 +201,24 @@ export default function Toolbar({
               Generate
             </button>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/30 px-2 py-1.5 dark:border-emerald-800 dark:bg-emerald-950/30">
               <input
                 type="number"
                 value={trialMinutes}
                 onChange={(e) => setTrialMinutes(Math.max(1, Math.min(43200, +e.target.value || 1)))}
                 min="1"
                 max="43200"
-                className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
               />
               <span className="text-xs text-slate-400 dark:text-slate-500">min</span>
+              <select
+                value={trialProgramType}
+                onChange={(e) => setTrialProgramType(e.target.value)}
+                className="w-22 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              >
+                <option value="Piano">Piano</option>
+                <option value="Point Blank">P.Blank</option>
+              </select>
               <button
                 onClick={onTrial}
                 disabled={loading}
