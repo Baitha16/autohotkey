@@ -53,6 +53,7 @@ export default function Dashboard({ onLogout }) {
     if (t === "monthly") setDays(30);
     else if (t === "weekly") setDays(7);
     else if (t === "yearly") setDays(365);
+    else if (t === "trial") setTrialMinutes(60);
   };
 
   const load = useCallback(async (silent = false) => {

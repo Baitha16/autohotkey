@@ -3,10 +3,12 @@ import { api } from "../lib/api";
 
 const typeOptions = [
   { value: "settings", label: "Settings" },
+  { value: "cleanup", label: "Clean Up" },
   { value: "monthly", label: "Monthly" },
   { value: "weekly", label: "Weekly" },
   { value: "yearly", label: "Yearly" },
   { value: "lifetime", label: "Lifetime" },
+  { value: "trial", label: "Trial" },
 ];
 
 export default function Toolbar({
@@ -79,7 +81,7 @@ export default function Toolbar({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50">
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">P.Blank</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Point Blank</span>
               <input
                 value={pointblankVersion}
                 onChange={(e) => onPointblankVersionChange(e.target.value)}
@@ -103,6 +105,9 @@ export default function Toolbar({
               </svg>
               {settingsSaving ? "Saving..." : "Save"}
             </button>
+          </>
+        ) : type === "cleanup" ? (
+          <>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
@@ -112,7 +117,7 @@ export default function Toolbar({
                 max="365"
                 className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
               />
-              <span className="text-xs text-slate-400 dark:text-slate-500">days cleanup</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">days</span>
               <button
                 onClick={() => onSaveCleanupSettings(cleanupDays)}
                 className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400 dark:hover:bg-amber-900"
@@ -132,18 +137,47 @@ export default function Toolbar({
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                   <span className="font-mono tabular-nums">
                     {autoCleanupStatus.next_run
-                      ? `Cleanup: ${d > 0 ? `${d}d ` : ""}${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`
-                      : "Cleanup: not scheduled"}
+                      ? `Next: ${d > 0 ? `${d}d ` : ""}${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`
+                      : "Not scheduled"}
                   </span>
                   <button
                     onClick={onRunAutoCleanup}
                     className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
                   >
-                    Run
+                    Run Now
                   </button>
                 </div>
               );
             })()}
+          </>
+        ) : type === "trial" ? (
+          <>
+            <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/30 px-2 py-1.5 dark:border-emerald-800 dark:bg-emerald-950/30">
+              <input
+                type="number"
+                value={trialMinutes}
+                onChange={(e) => setTrialMinutes(Math.max(1, Math.min(43200, +e.target.value || 1)))}
+                min="1"
+                max="43200"
+                className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              />
+              <span className="text-xs text-slate-400 dark:text-slate-500">min</span>
+              <select
+                value={trialProgramType}
+                onChange={(e) => setTrialProgramType(e.target.value)}
+                className="w-28 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              >
+                <option value="Piano">Piano</option>
+                <option value="Point Blank">Point Blank</option>
+              </select>
+              <button
+                onClick={onTrial}
+                disabled={loading}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
+              >
+                Generate Trial
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -200,33 +234,6 @@ export default function Toolbar({
             >
               Generate
             </button>
-
-            <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/30 px-2 py-1.5 dark:border-emerald-800 dark:bg-emerald-950/30">
-              <input
-                type="number"
-                value={trialMinutes}
-                onChange={(e) => setTrialMinutes(Math.max(1, Math.min(43200, +e.target.value || 1)))}
-                min="1"
-                max="43200"
-                className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
-              />
-              <span className="text-xs text-slate-400 dark:text-slate-500">min</span>
-              <select
-                value={trialProgramType}
-                onChange={(e) => setTrialProgramType(e.target.value)}
-                className="w-22 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
-              >
-                <option value="Piano">Piano</option>
-                <option value="Point Blank">P.Blank</option>
-              </select>
-              <button
-                onClick={onTrial}
-                disabled={loading}
-                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900"
-              >
-                Trial
-              </button>
-            </div>
           </>
         )}
 

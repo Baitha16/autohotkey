@@ -678,14 +678,6 @@ app.post("/api/admin/update-settings", adminAuth, adminLimiter, async (req, res)
       if (errLink) throw errLink;
     }
 
-    // Legacy fallback — keep old keys in sync with piano
-    if (piano_version != null) {
-      await upsertSetting('latest_version', piano_version);
-    }
-    if (piano_link != null) {
-      await upsertSetting('discord_link', piano_link);
-    }
-
     return ok(res, { message: "App settings updated successfully" });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
