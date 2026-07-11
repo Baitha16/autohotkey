@@ -196,7 +196,7 @@ app.post("/api/verify-license", async (req, res) => {
       }
     }
 
-    // LOGIKA PENGIKATAN HWID (MULTI-SLOT)
+    // LOGIKA PENGIKATAN HWID
     const maxSlots = data.hwid_slots || 1;
     let hwids = parseHwids(data.hwid);
 
@@ -204,9 +204,9 @@ app.post("/api/verify-license", async (req, res) => {
       hwids = [hwid];
     } else if (!hwids.includes(hwid)) {
       if (hwids.length >= maxSlots) {
-        return fail(res, "License HWID slots are full", 403);
+        return fail(res, "License is already in use on another device", 403);
       }
-      hwids.push(hwid);
+      return fail(res, "License is currently active on another device", 403);
     }
 
     const updateFields = { hwid: JSON.stringify(hwids) };

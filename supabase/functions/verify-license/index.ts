@@ -67,7 +67,7 @@ serve(async (req) => {
       }
     }
 
-    // HWID multi-slot binding logic
+    // HWID binding logic
     const maxSlots = data.hwid_slots || 1;
     let hwids = parseHwids(data.hwid);
 
@@ -76,11 +76,14 @@ serve(async (req) => {
     } else if (!hwids.includes(hwid)) {
       if (hwids.length >= maxSlots) {
         return new Response(
-          JSON.stringify({ success: false, error: "License HWID slots are full" }),
+          JSON.stringify({ success: false, error: "License is already in use on another device" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
         );
       }
-      hwids.push(hwid);
+      return new Response(
+        JSON.stringify({ success: false, error: "License is currently active on another device" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+      );
     }
 
     const updateFields: Record<string, unknown> = { hwid: JSON.stringify(hwids) };
