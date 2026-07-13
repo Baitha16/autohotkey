@@ -73,12 +73,12 @@ export default function Dashboard({ onLogout }) {
     try {
       const d = await api("/api/admin/settings");
       if (d.success && d.settings) {
-        if (d.settings.piano_latest_version) setPianoVersion(d.settings.piano_latest_version);
-        else if (d.settings.latest_version) setPianoVersion(d.settings.latest_version);
-        if (d.settings.piano_discord_link) setPianoLink(d.settings.piano_discord_link);
-        else if (d.settings.discord_link) setPianoLink(d.settings.discord_link);
-        if (d.settings.pointblank_latest_version) setPointblankVersion(d.settings.pointblank_latest_version);
-        if (d.settings.pointblank_discord_link) setPointblankLink(d.settings.pointblank_discord_link);
+        if ("piano_latest_version" in d.settings) setPianoVersion(d.settings.piano_latest_version);
+        else if ("latest_version" in d.settings) setPianoVersion(d.settings.latest_version);
+        if ("piano_discord_link" in d.settings) setPianoLink(d.settings.piano_discord_link);
+        else if ("discord_link" in d.settings) setPianoLink(d.settings.discord_link);
+        if ("pointblank_latest_version" in d.settings) setPointblankVersion(d.settings.pointblank_latest_version);
+        if ("pointblank_discord_link" in d.settings) setPointblankLink(d.settings.pointblank_discord_link);
       }
     } catch (_) {}
   }, []);

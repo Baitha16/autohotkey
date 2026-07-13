@@ -15,9 +15,7 @@ function formatProgramTypes(pt) {
   try { arr = pt.startsWith("[") ? JSON.parse(pt) : [pt]; }
   catch { arr = [pt]; }
   if (!Array.isArray(arr) || arr.length === 0) return "-";
-  return arr.map((p) => (
-    <span key={p} className="inline-block rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">{p}</span>
-  ));
+  return arr.join(", ");
 }
 
 function HwidCell({ hwid, slots }) {
@@ -289,7 +287,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
               <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <span className="text-slate-400">Type</span><span className="text-slate-700 dark:text-slate-300 capitalize">{l.membership_type}</span>
                 <span className="text-slate-400">Owner</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.owner || "-"}</span>
-                <span className="text-slate-400">Program</span><span className="text-slate-700 dark:text-slate-300 truncate flex flex-wrap gap-1">{formatProgramTypes(l.program_type)}</span>
+                <span className="text-slate-400">Program</span><span className="text-slate-700 dark:text-slate-300 truncate">{formatProgramTypes(l.program_type)}</span>
                 <span className="text-slate-400">Expires</span><CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
                   {l.hwid && <><span className="text-slate-400">HWID</span><HwidCell hwid={l.hwid} slots={l.hwid_slots} /></>}
               </div>
@@ -374,7 +372,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                     {l.owner || "-"}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700 dark:text-slate-300">
-                    <div className="flex flex-wrap gap-1">{formatProgramTypes(l.program_type)}</div>
+                    {formatProgramTypes(l.program_type)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                     <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
