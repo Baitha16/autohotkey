@@ -138,6 +138,21 @@ function formatHwids(hwid) {
   return list.length;
 }
 
+/* ---------- program type helpers ---------- */
+
+function parseProgramTypes(pt) {
+  if (!pt) return [];
+  if (typeof pt === 'string' && pt.startsWith('[')) {
+    try { return JSON.parse(pt); } catch { return pt ? [pt] : []; }
+  }
+  return pt ? [pt] : [];
+}
+
+function formatProgramTypes(arr) {
+  const filtered = [...new Set((arr || []).filter(Boolean))];
+  return filtered.length > 0 ? JSON.stringify(filtered) : null;
+}
+
 /* ---------- auth middleware ---------- */
 
 function adminAuth(req, res, next) {
@@ -189,9 +204,10 @@ app.post("/api/verify-license", async (req, res) => {
       return fail(res, `License is ${data.status}`, 403);
     }
 
-    // PROGRAM TYPE BINDING — lock program_type on first use, enforce match afterward
+    // PROGRAM TYPE BINDING — support multiple program types
     if (data.program_type) {
-      if (!program_type || program_type !== data.program_type) {
+      const pts = parseProgramTypes(data.program_type);
+      if (pts.length > 0 && (!program_type || !pts.includes(program_type))) {
         return fail(res, "License is bound to a different program", 403);
       }
     }
@@ -211,7 +227,7 @@ app.post("/api/verify-license", async (req, res) => {
 
     const updateFields = { hwid: JSON.stringify(hwids) };
     if (!data.program_type && program_type) {
-      updateFields.program_type = program_type;
+      updateFields.program_type = formatProgramTypes([program_type]);
     }
     await getSupabase()
       .from("licenses")
@@ -278,7 +294,7 @@ app.post("/api/generate-trial", trialLimiter, async (req, res) => {
     };
     const { owner: trialOwner, program_type: trialProgram } = req.body;
     if (trialOwner != null) trialData.owner = trialOwner;
-    if (trialProgram != null) trialData.program_type = trialProgram;
+    if (trialProgram != null) trialData.program_type = formatProgramTypes([trialProgram]);
     const { error } = await getSupabase().from("licenses").insert(trialData);
 
     if (error) throw error;
@@ -352,7 +368,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
 
         const updateData = { membership_type, expires_at: finalExpiry };
         if (owner != null) updateData.owner = owner;
-        if (program_type != null) updateData.program_type = program_type;
+        if (program_type != null) updateData.program_type = formatProgramTypes([program_type]);
         if (hwid_slots != null) updateData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
         await getSupabase()
           .from("licenses")
@@ -371,7 +387,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         hwid: null,
       };
       if (owner != null) insertData.owner = owner;
-      if (program_type != null) insertData.program_type = program_type;
+      if (program_type != null) insertData.program_type = formatProgramTypes([program_type]);
       if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
       const { error } = await getSupabase().from("licenses").insert(insertData);
 
@@ -408,7 +424,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       hwid: null,
     };
     if (owner != null) insertData.owner = owner;
-    if (program_type != null) insertData.program_type = program_type;
+    if (program_type != null) insertData.program_type = formatProgramTypes([program_type]);
     if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
     const { error } = await getSupabase().from("licenses").insert(insertData);
 
@@ -456,7 +472,7 @@ app.post("/api/extend-license", adminAuth, adminLimiter, async (req, res) => {
       status: "active",
     };
     if (extOwner != null) extData.owner = extOwner;
-    if (req.body.program_type !== undefined) extData.program_type = req.body.program_type;
+    if (req.body.program_type !== undefined) extData.program_type = formatProgramTypes([req.body.program_type]);
     const { error: updateError } = await getSupabase()
       .from("licenses")
       .update(extData)
@@ -536,7 +552,7 @@ app.post("/api/reset-hwid", adminAuth, adminLimiter, async (req, res) => {
 
 app.post("/api/update-license", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { license_code, program_type, owner } = req.body;
+    const { license_code, program_type, program_types, owner } = req.body;
 
     if (!license_code || !isValidLicenseCode(license_code)) {
       return fail(res, "Invalid license code format");
@@ -544,7 +560,7 @@ app.post("/api/update-license", adminAuth, adminLimiter, async (req, res) => {
 
     const { data: existing, error: fetchError } = await getSupabase()
       .from("licenses")
-      .select("id")
+      .select("id, program_type")
       .eq("license_code", license_code)
       .maybeSingle();
 
@@ -552,8 +568,22 @@ app.post("/api/update-license", adminAuth, adminLimiter, async (req, res) => {
     if (!existing) return fail(res, "License code not found", 404);
 
     const updateData = {};
-    if (program_type !== undefined) updateData.program_type = program_type;
     if (owner !== undefined) updateData.owner = owner;
+
+    if (program_types !== undefined) {
+      // Replace with full array
+      updateData.program_type = formatProgramTypes(program_types);
+    } else if (program_type !== undefined) {
+      // Add single program type to existing
+      const current = parseProgramTypes(existing.program_type);
+      if (program_type === "") {
+        // Clear all
+        updateData.program_type = null;
+      } else {
+        if (!current.includes(program_type)) current.push(program_type);
+        updateData.program_type = formatProgramTypes(current);
+      }
+    }
 
     const { error } = await getSupabase()
       .from("licenses")

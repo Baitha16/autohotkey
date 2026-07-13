@@ -3,6 +3,14 @@ import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { supabase } from "../_shared/supabase.ts";
 import { isValidLicenseCode } from "../_shared/validation.ts";
 
+function parseProgramTypes(pt: string | null): string[] {
+  if (!pt) return [];
+  if (pt.startsWith("[")) {
+    try { return JSON.parse(pt); } catch { return pt ? [pt] : []; }
+  }
+  return pt ? [pt] : [];
+}
+
 function parseHwids(hwid: string | null): string[] {
   if (!hwid) return [];
   try {
@@ -57,9 +65,10 @@ serve(async (req) => {
       );
     }
 
-    // PROGRAM TYPE BINDING
+    // PROGRAM TYPE BINDING — support multiple program types
     if (data.program_type) {
-      if (!program_type || program_type !== data.program_type) {
+      const pts = parseProgramTypes(data.program_type);
+      if (pts.length > 0 && (!program_type || !pts.includes(program_type))) {
         return new Response(
           JSON.stringify({ success: false, error: "License is bound to a different program" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
@@ -88,7 +97,7 @@ serve(async (req) => {
 
     const updateFields: Record<string, unknown> = { hwid: JSON.stringify(hwids) };
     if (!data.program_type && program_type) {
-      updateFields.program_type = program_type;
+      updateFields.program_type = JSON.stringify([program_type]);
     }
     await supabase
       .from("licenses")

@@ -198,9 +198,14 @@ export default function Dashboard({ onLogout }) {
 
     let body = { license_code: code };
     if (endpoint === "update-program") {
-      const d = await prompt(`Program type for ${code}`, "Piano", { label: "Program name", buttonLabel: "Save", options: ["Piano", "Point Blank"] });
+      const existing = licenses.find(l => l.license_code === code)?.program_type;
+      let def = "[]";
+      if (existing) {
+        try { def = existing.startsWith("[") ? existing : JSON.stringify([existing]); } catch { def = "[]"; }
+      }
+      const d = await prompt(`Program types for ${code}`, def, { label: "Select programs", buttonLabel: "Save", options: ["Piano", "Point Blank"], multiple: true });
       if (d === null) return;
-      body.program_type = d;
+      body.program_types = d;
     }
     if (endpoint === "update-owner") {
       const d = await prompt(`Owner for ${code}`, "", { label: "Owner name", inputType: "text", buttonLabel: "Save" });
