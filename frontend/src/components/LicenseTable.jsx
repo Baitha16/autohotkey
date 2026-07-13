@@ -9,13 +9,20 @@ function parseHwids(hwid) {
   catch { return [hwid]; }
 }
 
+const programColors = {
+  "Piano": "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  "Point Blank": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+};
+
 function formatProgramTypes(pt) {
   if (!pt) return "-";
   let arr;
   try { arr = pt.startsWith("[") ? JSON.parse(pt) : [pt]; }
   catch { arr = [pt]; }
   if (!Array.isArray(arr) || arr.length === 0) return "-";
-  return arr.join(", ");
+  return arr.map((p) => (
+    <span key={p} className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${programColors[p] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>{p}</span>
+  ));
 }
 
 function HwidCell({ hwid, slots }) {
@@ -287,7 +294,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
               <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <span className="text-slate-400">Type</span><span className="text-slate-700 dark:text-slate-300 capitalize">{l.membership_type}</span>
                 <span className="text-slate-400">Owner</span><span className="text-slate-700 dark:text-slate-300 truncate">{l.owner || "-"}</span>
-                <span className="text-slate-400">Program</span><span className="text-slate-700 dark:text-slate-300 truncate">{formatProgramTypes(l.program_type)}</span>
+                <span className="text-slate-400">Program</span><span className="text-slate-700 dark:text-slate-300 truncate flex flex-wrap gap-1">{formatProgramTypes(l.program_type)}</span>
                 <span className="text-slate-400">Expires</span><CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
                   {l.hwid && <><span className="text-slate-400">HWID</span><HwidCell hwid={l.hwid} slots={l.hwid_slots} /></>}
               </div>
@@ -372,7 +379,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
                     {l.owner || "-"}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700 dark:text-slate-300">
-                    {formatProgramTypes(l.program_type)}
+                    <div className="flex flex-wrap gap-1">{formatProgramTypes(l.program_type)}</div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                     <CountdownCell expiresAt={l.expires_at} type={l.membership_type} />
