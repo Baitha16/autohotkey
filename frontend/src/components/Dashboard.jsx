@@ -15,15 +15,13 @@ export default function Dashboard({ onLogout }) {
   const [days, setDays] = useState(30);
   const [phone, setPhone] = useState("");
   const [owner, setOwner] = useState("");
-  const [programType, setProgramType] = useState("Piano");
+  const [programType, setProgramType] = useState("");
   const [trialMinutes, setTrialMinutes] = useState(60);
-  const [trialProgramType, setTrialProgramType] = useState("Piano");
+  const [trialProgramType, setTrialProgramType] = useState("");
   const [hwidSlots, setHwidSlots] = useState(1);
   const [search, setSearch] = useState("");
-  const [pianoVersion, setPianoVersion] = useState("1.0.0");
-  const [pianoLink, setPianoLink] = useState("https://discord.gg/NQAnnRZcAx");
-  const [pointblankVersion, setPointblankVersion] = useState("1.0.0");
-  const [pointblankLink, setPointblankLink] = useState("https://discord.gg/NQAnnRZcAx");
+  const [programs, setPrograms] = useState([]);
+  const [programSettings, setProgramSettings] = useState({});
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [autoCleanupStatus, setAutoCleanupStatus] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -69,16 +67,30 @@ export default function Dashboard({ onLogout }) {
     }
   }, [add]);
 
+  const loadPrograms = useCallback(async () => {
+    try {
+      const d = await api("/api/programs");
+      if (d.success && d.programs) {
+        setPrograms(d.programs);
+        const settings = {};
+        d.programs.forEach(p => { settings[p.name] = { latest_version: p.latest_version || "", discord_link: p.discord_link || "" }; });
+        setProgramSettings(settings);
+        if (d.programs.length > 0) {
+          setProgramType(prev => d.programs.some(p => p.name === prev) ? prev : d.programs[0].name);
+          setTrialProgramType(prev => d.programs.some(p => p.name === prev) ? prev : d.programs[0].name);
+        }
+      }
+    } catch (_) {}
+  }, []);
+
   const loadSettings = useCallback(async () => {
     try {
       const d = await api("/api/admin/settings");
-      if (d.success && d.settings) {
-        if ("piano_latest_version" in d.settings) setPianoVersion(d.settings.piano_latest_version);
-        else if ("latest_version" in d.settings) setPianoVersion(d.settings.latest_version);
-        if ("piano_discord_link" in d.settings) setPianoLink(d.settings.piano_discord_link);
-        else if ("discord_link" in d.settings) setPianoLink(d.settings.discord_link);
-        if ("pointblank_latest_version" in d.settings) setPointblankVersion(d.settings.pointblank_latest_version);
-        if ("pointblank_discord_link" in d.settings) setPointblankLink(d.settings.pointblank_discord_link);
+      if (d.success && d.programs) {
+        setPrograms(d.programs);
+        const settings = {};
+        d.programs.forEach(p => { settings[p.name] = { latest_version: p.latest_version || "", discord_link: p.discord_link || "" }; });
+        setProgramSettings(settings);
       }
     } catch (_) {}
   }, []);
@@ -107,14 +119,15 @@ export default function Dashboard({ onLogout }) {
   const saveSettings = async () => {
     setSettingsSaving(true);
     try {
+      const body = {};
+      programs.forEach(p => {
+        const s = programSettings[p.name] || {};
+        body[`${p.name}_version`] = s.latest_version || "";
+        body[`${p.name}_link`] = s.discord_link || "";
+      });
       const d = await api("/api/admin/update-settings", {
         method: "POST",
-        body: JSON.stringify({
-          piano_version: pianoVersion,
-          piano_link: pianoLink,
-          pointblank_version: pointblankVersion,
-          pointblank_link: pointblankLink,
-        }),
+        body: JSON.stringify(body),
       });
       if (d.success) add("Settings saved");
       else add(d.error, true);
@@ -128,11 +141,12 @@ export default function Dashboard({ onLogout }) {
   useEffect(() => {
     load();
     loadSettings();
+    loadPrograms();
     loadAutoCleanupStatus();
     const id = setInterval(() => load(true), 10000);
     const id2 = setInterval(() => loadAutoCleanupStatus(), 1000);
     return () => { clearInterval(id); clearInterval(id2); };
-  }, [load, loadSettings, loadAutoCleanupStatus]);
+  }, [load, loadSettings, loadPrograms, loadAutoCleanupStatus]);
 
   function isExpired(l) {
     return l.membership_type !== "lifetime" && l.expires_at && new Date(l.expires_at).getTime() <= Date.now();
@@ -203,7 +217,9 @@ export default function Dashboard({ onLogout }) {
       if (existing) {
         try { def = existing.startsWith("[") ? existing : JSON.stringify([existing]); } catch { def = "[]"; }
       }
-      const d = await prompt(`Program types for ${code}`, def, { label: "Select programs", buttonLabel: "Save", options: ["Piano", "Point Blank"], multiple: true });
+      const opts = programs.map(p => p.name);
+      if (opts.length === 0) { add("No program types configured", true); return; }
+      const d = await prompt(`Program types for ${code}`, def, { label: "Select programs", buttonLabel: "Save", options: opts, multiple: true });
       if (d === null) return;
       body.program_types = d;
     }
@@ -242,6 +258,38 @@ export default function Dashboard({ onLogout }) {
     } catch (e) {
       add(e.message, true);
     }
+  };
+
+  const addProgram = async (name, color, version, link) => {
+    try {
+      const d = await api("/api/programs", {
+        method: "POST",
+        body: JSON.stringify({ name, color, latest_version: version, discord_link: link }),
+      });
+      if (d.success) { add(`Program "${name}" added`); loadPrograms(); }
+      else add(d.error, true);
+    } catch (e) { add(e.message, true); }
+  };
+
+  const updateProgram = async (id, fields) => {
+    try {
+      const d = await api(`/api/programs/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(fields),
+      });
+      if (d.success) { add("Program updated"); loadPrograms(); }
+      else add(d.error, true);
+    } catch (e) { add(e.message, true); }
+  };
+
+  const deleteProgram = async (id, name) => {
+    const ok = await confirm(`Delete program "${name}"? Licenses using this program must be updated first.`, true);
+    if (!ok) return;
+    try {
+      const d = await api(`/api/programs/${id}`, { method: "DELETE" });
+      if (d.success) { add(`Program "${name}" deleted`); loadPrograms(); }
+      else add(d.error, true);
+    } catch (e) { add(e.message, true); }
   };
 
   const handleLogout = () => {
@@ -320,16 +368,14 @@ export default function Dashboard({ onLogout }) {
           onGenerate={generate}
           onTrial={genTrial}
           loading={loading}
-          pianoVersion={pianoVersion}
-          onPianoVersionChange={setPianoVersion}
-          pianoLink={pianoLink}
-          onPianoLinkChange={setPianoLink}
-          pointblankVersion={pointblankVersion}
-          onPointblankVersionChange={setPointblankVersion}
-          pointblankLink={pointblankLink}
-          onPointblankLinkChange={setPointblankLink}
+          programs={programs}
+          programSettings={programSettings}
+          onProgramSettingsChange={setProgramSettings}
           onSaveSettings={saveSettings}
           settingsSaving={settingsSaving}
+          onAddProgram={addProgram}
+          onUpdateProgram={updateProgram}
+          onDeleteProgram={deleteProgram}
           cleanupIntervalDays={autoCleanupStatus?.interval_days ?? 3}
           onSaveCleanupSettings={saveCleanupSettings}
           autoCleanupStatus={autoCleanupStatus}
@@ -346,6 +392,7 @@ export default function Dashboard({ onLogout }) {
             search={search}
             add={add}
             onAct={act}
+            programs={programs}
           />
         )}
       </main>

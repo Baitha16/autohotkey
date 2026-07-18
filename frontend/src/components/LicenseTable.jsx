@@ -9,20 +9,10 @@ function parseHwids(hwid) {
   catch { return [hwid]; }
 }
 
-const programColors = {
-  "Piano": "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
-  "Point Blank": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-};
-
-function formatProgramTypes(pt) {
-  if (!pt) return "-";
-  let arr;
-  try { arr = pt.startsWith("[") ? JSON.parse(pt) : [pt]; }
-  catch { arr = [pt]; }
-  if (!Array.isArray(arr) || arr.length === 0) return "-";
-  return arr.map((p) => (
-    <span key={p} className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${programColors[p] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>{p}</span>
-  ));
+function parseProgramTypes(pt) {
+  if (!pt) return [];
+  try { const arr = pt.startsWith("[") ? JSON.parse(pt) : [pt]; return Array.isArray(arr) ? arr : [pt]; }
+  catch { return [pt]; }
 }
 
 function HwidCell({ hwid, slots }) {
@@ -174,10 +164,30 @@ const columns = [
   { key: "actions", label: "Actions", sortable: false },
 ];
 
-export default function LicenseTable({ licenses, search, add, onAct }) {
+function hexToTailwind(hex) {
+  if (!hex) return null;
+  const c = hex.replace("#", "");
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return {
+    bg: `rgba(${r},${g},${b},0.12)`,
+    text: brightness > 128 ? `rgba(${r},${g},${b},0.9)` : `rgba(${r},${g},${b},0.95)`,
+    ring: `rgba(${r},${g},${b},0.25)`,
+  };
+}
+
+export default function LicenseTable({ licenses, search, add, onAct, programs }) {
   const [sortCol, setSortCol] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
   const [page, setPage] = useState(0);
+
+  const programColorMap = useMemo(() => {
+    const map = {};
+    programs.forEach(p => { map[p.name] = hexToTailwind(p.color); });
+    return map;
+  }, [programs]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return licenses;
@@ -188,7 +198,7 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
         l.membership_type.toLowerCase().includes(q) ||
         l.status.toLowerCase().includes(q) ||
         (l.owner && l.owner.toLowerCase().includes(q)) ||
-        (l.program_type && JSON.parse(l.program_type.startsWith("[") ? l.program_type : `["${l.program_type}"]`).some(p => p.toLowerCase().includes(q)))
+        (l.program_type && parseProgramTypes(l.program_type).some(p => p.toLowerCase().includes(q)))
     );
   }, [licenses, search]);
 
@@ -239,6 +249,21 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
     return <span className="ml-1 text-indigo-500">{sortDir === "asc" ? "↑" : "↓"}</span>;
   }
 
+  function formatProgramTypes(pt) {
+    if (!pt) return "-";
+    const list = parseProgramTypes(pt);
+    if (list.length === 0) return "-";
+    return list.map((p) => {
+      const colors = programColorMap[p];
+      const style = colors
+        ? { backgroundColor: colors.bg, color: colors.text, boxShadow: `0 0 0 1px ${colors.ring}` }
+        : {};
+      return (
+        <span key={p} className="inline-block rounded-full px-2 py-0.5 text-xs font-medium" style={style}>{p}</span>
+      );
+    });
+  }
+
   if (!licenses.length) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800">
@@ -251,7 +276,6 @@ export default function LicenseTable({ licenses, search, add, onAct }) {
     <>
       {/* --- MOBILE: card layout --- */}
       <div className="space-y-3 sm:hidden">
-        {/* Mobile sort controls */}
         <div className="flex flex-wrap items-center gap-1.5 pb-1">
           <span className="text-xs font-medium text-slate-400">Sort:</span>
           {columns.filter((c) => c.sortable).map((col) => (

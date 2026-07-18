@@ -634,26 +634,21 @@ app.delete("/api/licenses", adminAuth, adminLimiter, async (req, res) => {
 
 app.get("/api/check-update", async (req, res) => {
   try {
+    const program = req.query.program || "Piano";
+
     const { data, error } = await getSupabase()
-      .from('app_settings')
-      .select('setting_name, setting_value');
+      .from('program_types')
+      .select('latest_version, discord_link')
+      .eq('name', program)
+      .maybeSingle();
 
     if (error) throw error;
 
-    const program = req.query.program || "Piano";
-
-    let latest_version = "1.0.0";
-    let update_link = "https://discord.gg/NQAnnRZcAx";
-    const prefix = program === "Point Blank" ? "pointblank_" : "piano_";
-
-    if (data) {
-      data.forEach(item => {
-        if (item.setting_name === `${prefix}latest_version`) latest_version = item.setting_value;
-        if (item.setting_name === `${prefix}discord_link`) update_link = item.setting_value;
-      });
-    }
-
-    return ok(res, { latest_version, update_link, program });
+    return ok(res, {
+      latest_version: data?.latest_version || "1.0.0",
+      update_link: data?.discord_link || "https://discord.gg/NQAnnRZcAx",
+      program,
+    });
   } catch (err) {
     return ok(res, {
       latest_version: "1.0.0",
@@ -662,24 +657,123 @@ app.get("/api/check-update", async (req, res) => {
   }
 });
 
+/* ---------- ADMIN: program types CRUD ---------- */
+
+app.get("/api/programs", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { data, error } = await getSupabase()
+      .from('program_types')
+      .select('*')
+      .order('name');
+
+    if (error) throw error;
+    return ok(res, { programs: data || [] });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+app.post("/api/programs", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { name, color, latest_version, discord_link } = req.body;
+    if (!name || !name.trim()) return fail(res, "Name is required");
+
+    const { data, error } = await getSupabase()
+      .from('program_types')
+      .insert({ name: name.trim(), color: color || '#8b5cf6', latest_version: latest_version || '1.0.0', discord_link: discord_link || '' })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') return fail(res, "Program type already exists");
+      throw error;
+    }
+    return ok(res, { program: data }, 201);
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+app.put("/api/programs/:id", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { name, color, latest_version, discord_link } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name.trim();
+    if (color !== undefined) updates.color = color;
+    if (latest_version !== undefined) updates.latest_version = latest_version;
+    if (discord_link !== undefined) updates.discord_link = discord_link;
+
+    const { data, error } = await getSupabase()
+      .from('program_types')
+      .update(updates)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') return fail(res, "Program type already exists");
+      throw error;
+    }
+    if (!data) return fail(res, "Program type not found", 404);
+    return ok(res, { program: data });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+app.delete("/api/programs/:id", adminAuth, adminLimiter, async (req, res) => {
+  try {
+    const { data: program, error: fetchError } = await getSupabase()
+      .from('program_types')
+      .select('name')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchError) return fail(res, "Program type not found", 404);
+
+    // Check if any licenses use this program
+    const { data: used, error: usedError } = await getSupabase()
+      .from('licenses')
+      .select('id')
+      .ilike('program_type', `%${program.name}%`)
+      .limit(1);
+
+    if (!usedError && used && used.length > 0) {
+      return fail(res, `Cannot delete: licenses still use "${program.name}"`, 400);
+    }
+
+    const { error } = await getSupabase()
+      .from('program_types')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    return ok(res, { message: "Program type deleted" });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
 /* ---------- ADMIN: get settings ---------- */
 
 app.get("/api/admin/settings", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { data, error } = await getSupabase()
-      .from('app_settings')
-      .select('setting_name, setting_value');
+    const [appRes, progRes] = await Promise.all([
+      getSupabase().from('app_settings').select('setting_name, setting_value'),
+      getSupabase().from('program_types').select('*').order('name'),
+    ]);
 
-    if (error) throw error;
+    if (appRes.error) throw appRes.error;
+    if (progRes.error) throw progRes.error;
 
     let settings = {};
-    if (data) {
-      data.forEach(item => {
+    if (appRes.data) {
+      appRes.data.forEach(item => {
         settings[item.setting_name] = item.setting_value;
       });
     }
 
-    return ok(res, { settings });
+    return ok(res, { settings, programs: progRes.data || [] });
   } catch (err) {
     return fail(res, err.message || "Internal error", 500);
   }
@@ -689,23 +783,14 @@ app.get("/api/admin/settings", adminAuth, adminLimiter, async (req, res) => {
 
 app.post("/api/admin/update-settings", adminAuth, adminLimiter, async (req, res) => {
   try {
-    const { piano_version, piano_link, pointblank_version, pointblank_link } = req.body;
-
-    if (piano_version != null) {
-      const { error: errVer } = await upsertSetting('piano_latest_version', piano_version);
-      if (errVer) throw errVer;
-    }
-    if (piano_link != null) {
-      const { error: errLink } = await upsertSetting('piano_discord_link', piano_link);
-      if (errLink) throw errLink;
-    }
-    if (pointblank_version != null) {
-      const { error: errVer } = await upsertSetting('pointblank_latest_version', pointblank_version);
-      if (errVer) throw errVer;
-    }
-    if (pointblank_link != null) {
-      const { error: errLink } = await upsertSetting('pointblank_discord_link', pointblank_link);
-      if (errLink) throw errLink;
+    for (const [key, value] of Object.entries(req.body)) {
+      if (key.endsWith("_version")) {
+        const name = key.slice(0, -8);
+        await getSupabase().from('program_types').update({ latest_version: value }).eq('name', name);
+      } else if (key.endsWith("_link")) {
+        const name = key.slice(0, -5);
+        await getSupabase().from('program_types').update({ discord_link: value }).eq('name', name);
+      }
     }
 
     return ok(res, { message: "App settings updated successfully" });

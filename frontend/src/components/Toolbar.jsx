@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "../lib/api";
 
 const typeOptions = [
+  { value: "programs", label: "Programs" },
   { value: "settings", label: "Settings" },
   { value: "cleanup", label: "Clean Up" },
   { value: "monthly", label: "Monthly" },
@@ -33,23 +34,40 @@ export default function Toolbar({
   onGenerate,
   onTrial,
   loading,
-  pianoVersion,
-  onPianoVersionChange,
-  pianoLink,
-  onPianoLinkChange,
-  pointblankVersion,
-  onPointblankVersionChange,
-  pointblankLink,
-  onPointblankLinkChange,
+  programs,
+  programSettings,
+  onProgramSettingsChange,
   onSaveSettings,
   settingsSaving,
+  onAddProgram,
+  onUpdateProgram,
+  onDeleteProgram,
   cleanupIntervalDays,
   onSaveCleanupSettings,
   autoCleanupStatus,
   onRunAutoCleanup,
 }) {
   const [cleanupDays, setCleanupDays] = useState(cleanupIntervalDays);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState("#8b5cf6");
+  const [newVersion, setNewVersion] = useState("1.0.0");
+  const [newLink, setNewLink] = useState("");
   useEffect(() => { setCleanupDays(cleanupIntervalDays); }, [cleanupIntervalDays]);
+
+  useEffect(() => {
+    if (programs.length > 0) {
+      if (!programType || !programs.some(p => p.name === programType)) setProgramType(programs[0].name);
+      if (!trialProgramType || !programs.some(p => p.name === trialProgramType)) setTrialProgramType(programs[0].name);
+    }
+  }, [programs]);
+
+  const handleSettingChange = (progName, field, value) => {
+    onProgramSettingsChange(prev => ({
+      ...prev,
+      [progName]: { ...(prev[progName] || {}), [field]: value },
+    }));
+  };
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <div className="flex flex-wrap items-center gap-2">
@@ -63,38 +81,101 @@ export default function Toolbar({
           ))}
         </select>
 
-        {type === "settings" ? (
+        {type === "programs" ? (
           <>
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50">
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Piano</span>
-              <input
-                value={pianoVersion}
-                onChange={(e) => onPianoVersionChange(e.target.value)}
-                placeholder="Version"
-                className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
-              />
-              <input
-                value={pianoLink}
-                onChange={(e) => onPianoLinkChange(e.target.value)}
-                placeholder="Discord Link"
-                className="w-44 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
-              />
+            <div className="flex flex-wrap items-start gap-4">
+              {programs.map(p => (
+                <div key={p.id} className="flex flex-col gap-1.5 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50 min-w-[180px]">
+                  <div className="flex items-center justify-between gap-1">
+                    <input
+                      value={p.name}
+                      onChange={(e) => onUpdateProgram(p.id, { name: e.target.value })}
+                      className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold outline-none focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                    />
+                    <button
+                      onClick={() => onDeleteProgram(p.id, p.name)}
+                      className="shrink-0 rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                      title="Delete"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={p.color}
+                      onChange={(e) => onUpdateProgram(p.id, { color: e.target.value })}
+                      className="h-6 w-8 cursor-pointer rounded border border-slate-200 p-0 dark:border-slate-600"
+                    />
+                    <input
+                      value={p.color}
+                      onChange={(e) => onUpdateProgram(p.id, { color: e.target.value })}
+                      placeholder="#hex"
+                      className="w-20 rounded border border-slate-200 bg-white px-1.5 py-1 text-xs outline-none focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50">
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Point Blank</span>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-2 dark:border-slate-600 dark:bg-slate-800/30">
+              <span className="text-xs font-medium text-slate-500">Add:</span>
               <input
-                value={pointblankVersion}
-                onChange={(e) => onPointblankVersionChange(e.target.value)}
-                placeholder="Version"
-                className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Name"
+                className="w-24 rounded border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
               />
               <input
-                value={pointblankLink}
-                onChange={(e) => onPointblankLinkChange(e.target.value)}
-                placeholder="Discord Link"
-                className="w-44 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+                type="color"
+                value={newColor}
+                onChange={(e) => setNewColor(e.target.value)}
+                className="h-6 w-8 cursor-pointer rounded border border-slate-200 p-0 dark:border-slate-600"
               />
+              <input
+                value={newVersion}
+                onChange={(e) => setNewVersion(e.target.value)}
+                placeholder="1.0.0"
+                className="w-16 rounded border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              />
+              <input
+                value={newLink}
+                onChange={(e) => setNewLink(e.target.value)}
+                placeholder="Discord link"
+                className="w-32 rounded border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              />
+              <button
+                onClick={() => { if (newName.trim()) { onAddProgram(newName.trim(), newColor, newVersion, newLink); setNewName(""); setNewColor("#8b5cf6"); setNewVersion("1.0.0"); setNewLink(""); } }}
+                className="rounded-lg bg-indigo-500 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-400"
+              >
+                Add
+              </button>
             </div>
+          </>
+        ) : type === "settings" ? (
+          <>
+            {programs.map(p => {
+              const s = programSettings[p.name] || {};
+              return (
+                <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">{p.name}</span>
+                  <input
+                    value={s.latest_version || ""}
+                    onChange={(e) => handleSettingChange(p.name, "latest_version", e.target.value)}
+                    placeholder="Version"
+                    className="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+                  />
+                  <input
+                    value={s.discord_link || ""}
+                    onChange={(e) => handleSettingChange(p.name, "discord_link", e.target.value)}
+                    placeholder="Discord Link"
+                    className="w-44 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500"
+                  />
+                </div>
+              );
+            })}
             <button
               onClick={onSaveSettings}
               disabled={settingsSaving}
@@ -167,8 +248,9 @@ export default function Toolbar({
                 onChange={(e) => setTrialProgramType(e.target.value)}
                 className="w-28 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
               >
-                <option value="Piano">Piano</option>
-                <option value="Point Blank">Point Blank</option>
+                {programs.map(p => (
+                  <option key={p.name} value={p.name}>{p.name}</option>
+                ))}
               </select>
               <button
                 onClick={onTrial}
@@ -209,8 +291,9 @@ export default function Toolbar({
               onChange={(e) => setProgramType(e.target.value)}
               className="w-28 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
             >
-              <option value="Piano">Piano</option>
-              <option value="Point Blank">Point Blank</option>
+              {programs.map(p => (
+                <option key={p.name} value={p.name}>{p.name}</option>
+              ))}
             </select>
 
             <input
