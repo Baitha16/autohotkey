@@ -369,7 +369,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
         const updateData = { membership_type, expires_at: finalExpiry };
         if (owner != null) updateData.owner = owner;
         if (program_type != null) updateData.program_type = formatProgramTypes([program_type]);
-        if (hwid_slots != null) updateData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
+        if (hwid_slots != null) updateData.hwid_slots = Math.max(1, Math.min(50, parseInt(hwid_slots) || 1));
         await getSupabase()
           .from("licenses")
           .update(updateData)
@@ -388,7 +388,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
       };
       if (owner != null) insertData.owner = owner;
       if (program_type != null) insertData.program_type = formatProgramTypes([program_type]);
-      if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
+      if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(50, parseInt(hwid_slots) || 1));
       const { error } = await getSupabase().from("licenses").insert(insertData);
 
       if (error) throw error;
@@ -425,7 +425,7 @@ app.post("/api/generate-code", adminAuth, adminLimiter, async (req, res) => {
     };
     if (owner != null) insertData.owner = owner;
     if (program_type != null) insertData.program_type = formatProgramTypes([program_type]);
-    if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(10, parseInt(hwid_slots) || 1));
+    if (hwid_slots != null) insertData.hwid_slots = Math.max(1, Math.min(50, parseInt(hwid_slots) || 1));
     const { error } = await getSupabase().from("licenses").insert(insertData);
 
     if (error) throw error;
