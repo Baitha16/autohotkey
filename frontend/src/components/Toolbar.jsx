@@ -281,7 +281,7 @@ export default function Toolbar({
               value={hwidSlots}
               onChange={(e) => onHwidSlotsChange(Math.max(1, Math.min(50, +e.target.value || 1)))}
               min="1"
-              max="10"
+              max="50"
               className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
             />
             <span className="text-xs text-slate-400 dark:text-slate-500">slots</span>

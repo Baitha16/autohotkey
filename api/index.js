@@ -262,6 +262,68 @@ app.post("/api/verify-license", async (req, res) => {
   }
 });
 
+/* ---------- PUBLIC: progress (sync) ---------- */
+
+app.get("/api/progress", async (req, res) => {
+  try {
+    const { license_code } = req.query;
+    if (!license_code) return fail(res, "license_code is required");
+
+    const { data, error } = await getSupabase()
+      .from("user_progress")
+      .select("progress, marked_words, bunpou_understand, completed_levels")
+      .eq("license_code", license_code)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return ok(res, {
+      progress: data?.progress || {},
+      marked_words: data?.marked_words || {},
+      bunpou_understand: data?.bunpou_understand || {},
+      completed_levels: data?.completed_levels || {}
+    });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
+app.post("/api/progress", async (req, res) => {
+  try {
+    const { license_code, progress, marked_words, bunpou_understand, completed_levels } = req.body;
+    if (!license_code) return fail(res, "license_code is required");
+
+    const upsertData = { license_code, updated_at: new Date().toISOString() };
+    if (progress !== undefined) upsertData.progress = progress;
+    if (marked_words !== undefined) upsertData.marked_words = marked_words;
+    if (bunpou_understand !== undefined) upsertData.bunpou_understand = bunpou_understand;
+    if (completed_levels !== undefined) upsertData.completed_levels = completed_levels;
+
+    const { data: existing } = await getSupabase()
+      .from("user_progress")
+      .select("id")
+      .eq("license_code", license_code)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await getSupabase()
+        .from("user_progress")
+        .update(upsertData)
+        .eq("license_code", license_code);
+      if (error) throw error;
+    } else {
+      const { error } = await getSupabase()
+        .from("user_progress")
+        .insert(upsertData);
+      if (error) throw error;
+    }
+
+    return ok(res, { message: "Progress saved" });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
 /* ---------- PUBLIC: generate-trial ---------- */
 
 app.post("/api/generate-trial", trialLimiter, async (req, res) => {
