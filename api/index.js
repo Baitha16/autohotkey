@@ -343,6 +343,46 @@ app.post("/api/progress", async (req, res) => {
   }
 });
 
+/* ---------- PUBLIC: leaderboard (peringkat) ---------- */
+
+app.get("/api/leaderboard", async (req, res) => {
+  try {
+    const { data: licenses, error: licErr } = await getSupabase()
+      .from("licenses")
+      .select("license_code, owner, program_type");
+    if (licErr) throw licErr;
+
+    const { data: rows, error: progErr } = await getSupabase()
+      .from("user_progress")
+      .select("license_code, progress");
+    if (progErr) throw progErr;
+
+    const progressByCode = {};
+    for (const row of rows || []) {
+      progressByCode[row.license_code] = row.progress || {};
+    }
+
+    const merged = (licenses || [])
+      .filter((lic) => parseProgramTypes(lic.program_type).includes("Nihongo Master"))
+      .map((lic) => {
+        const p = progressByCode[lic.license_code] || {};
+        return {
+          license_code: lic.license_code,
+          owner: lic.owner || "Anonymous",
+          streak: p.streak || 0,
+          bestScore: p.bestScore || 0
+        };
+      })
+      .sort((a, b) => (b.streak - a.streak) || (b.bestScore - a.bestScore))
+      .slice(0, 50)
+      .map((entry, i) => ({ rank: i + 1, owner: entry.owner, streak: entry.streak, bestScore: entry.bestScore }));
+
+    return ok(res, { leaderboard: merged });
+  } catch (err) {
+    return fail(res, err.message || "Internal error", 500);
+  }
+});
+
 /* ---------- PUBLIC: generate-trial ---------- */
 
 app.post("/api/generate-trial", trialLimiter, async (req, res) => {
