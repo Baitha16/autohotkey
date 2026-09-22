@@ -208,7 +208,15 @@ app.post("/api/verify-license", async (req, res) => {
     if (data.program_type) {
       const pts = parseProgramTypes(data.program_type);
       if (pts.length > 0 && (!program_type || !pts.includes(program_type))) {
-        return fail(res, "License is bound to a different program", 403);
+        if (program_type && !pts.includes(program_type)) {
+          pts.push(program_type);
+          await getSupabase()
+            .from("licenses")
+            .update({ program_type: formatProgramTypes(pts) })
+            .eq("license_code", license_code);
+        } else {
+          return fail(res, "License is bound to a different program", 403);
+        }
       }
     }
 
@@ -222,7 +230,7 @@ app.post("/api/verify-license", async (req, res) => {
       if (hwids.length >= maxSlots) {
         return fail(res, "License is already in use on another device", 403);
       }
-      return fail(res, "License is currently active on another device", 403);
+      hwids.push(hwid);
     }
 
     const updateFields = { hwid: JSON.stringify(hwids) };
