@@ -228,8 +228,9 @@ app.post("/api/verify-license", async (req, res) => {
       hwids = [hwid];
     } else if (!hwids.includes(hwid)) {
       if (program_type === "Nihongo Master") {
-        // Khusus Nihongo Master: Izinkan maksimal 2 device aktif bersamaan
-        const nihongoMaxSlots = Math.min(2, maxSlots);
+        // Khusus Nihongo Master: selalu izinkan maksimal 2 device aktif bersamaan
+        // (abaikan hwid_slots default 1 — tetap hormati jika hwid_slots > 2)
+        const nihongoMaxSlots = Math.max(2, maxSlots);
         if (hwids.length < nihongoMaxSlots) {
           hwids.push(hwid); // Tambahkan device kedua
         } else {
