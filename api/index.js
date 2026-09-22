@@ -227,10 +227,21 @@ app.post("/api/verify-license", async (req, res) => {
     if (hwids.length === 0) {
       hwids = [hwid];
     } else if (!hwids.includes(hwid)) {
-      if (hwids.length >= maxSlots) {
-        return fail(res, "License is already in use on another device", 403);
+      if (program_type === "Nihongo Master") {
+        // Khusus Nihongo Master: Izinkan maksimal 2 device aktif bersamaan
+        const nihongoMaxSlots = Math.min(2, maxSlots);
+        if (hwids.length < nihongoMaxSlots) {
+          hwids.push(hwid); // Tambahkan device kedua
+        } else {
+          return fail(res, "License is already in use on another device", 403);
+        }
+      } else {
+        // Program lain (Piano, dll): Hanya boleh 1 device aktif dalam satu waktu
+        if (hwids.length >= maxSlots) {
+          return fail(res, "License is already in use on another device", 403);
+        }
+        return fail(res, "License is currently active on another device", 403);
       }
-      hwids.push(hwid);
     }
 
     const updateFields = { hwid: JSON.stringify(hwids) };
