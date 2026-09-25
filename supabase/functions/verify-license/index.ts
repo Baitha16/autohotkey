@@ -11,15 +11,32 @@ function parseProgramTypes(pt: string | null): string[] {
   return pt ? [pt] : [];
 }
 
-function parseHwids(hwid: string | null): string[] {
-  if (!hwid) return [];
+// Format baru: {"nihongo":[...],"others":[...]}
+// Format lama (array flat) diklasifikasi ke pool nihongo agar program lain tidak terblokir
+type HwidPools = { nihongo: string[]; others: string[] };
+
+function parseHwidPools(raw: string | null): HwidPools {
+  const pools: HwidPools = { nihongo: [], others: [] };
+  if (!raw) return pools;
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(hwid);
-    if (Array.isArray(parsed)) return parsed;
-    return [];
+    parsed = JSON.parse(raw);
   } catch {
-    return [hwid];
+    pools.nihongo.push(raw);
+    return pools;
   }
+  if (Array.isArray(parsed)) {
+    pools.nihongo = parsed.filter(Boolean) as string[];
+  } else if (parsed && typeof parsed === "object") {
+    const obj = parsed as Record<string, unknown>;
+    pools.nihongo = Array.isArray(obj.nihongo) ? (obj.nihongo.filter(Boolean) as string[]) : [];
+    pools.others = Array.isArray(obj.others) ? (obj.others.filter(Boolean) as string[]) : [];
+  }
+  return pools;
+}
+
+function formatHwidPools(pools: HwidPools): string {
+  return JSON.stringify({ nihongo: pools.nihongo, others: pools.others });
 }
 
 serve(async (req) => {
@@ -66,36 +83,47 @@ serve(async (req) => {
     }
 
     // PROGRAM TYPE BINDING — support multiple program types
+    // Konsisten dengan Express API: program baru ditambahkan ke daftar (auto-add),
+    // hanya ditolak jika program_type tidak dikirim sama sekali
     if (data.program_type) {
       const pts = parseProgramTypes(data.program_type);
       if (pts.length > 0 && (!program_type || !pts.includes(program_type))) {
-        return new Response(
-          JSON.stringify({ success: false, error: "License is bound to a different program" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
-        );
+        if (program_type && !pts.includes(program_type)) {
+          pts.push(program_type);
+          await supabase
+            .from("licenses")
+            .update({ program_type: JSON.stringify(pts) })
+            .eq("license_code", license_code);
+        } else {
+          return new Response(
+            JSON.stringify({ success: false, error: "License is bound to a different program" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+          );
+        }
       }
     }
 
-    // HWID binding logic
+    // HWID binding logic — dipisah per pool:
+    // - Nihongo Master: pool sendiri, maksimal max(2, hwid_slots) device
+    // - Program lain: pool bersama, maksimal hwid_slots device (tidak bisa dibuka berbarengan antar program lain)
     const maxSlots = data.hwid_slots || 1;
-    let hwids = parseHwids(data.hwid);
+    const pools = parseHwidPools(data.hwid);
+    const isNihongo = program_type === "Nihongo Master";
+    const pool = isNihongo ? pools.nihongo : pools.others;
+    const poolMax = isNihongo ? Math.max(2, maxSlots) : maxSlots;
 
-    if (hwids.length === 0) {
-      hwids = [hwid];
-    } else if (!hwids.includes(hwid)) {
-      if (hwids.length >= maxSlots) {
+    const alreadyBound = pools.nihongo.includes(hwid) || pools.others.includes(hwid);
+    if (!alreadyBound) {
+      if (pool.length >= poolMax) {
         return new Response(
           JSON.stringify({ success: false, error: "License is already in use on another device" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
         );
       }
-      return new Response(
-        JSON.stringify({ success: false, error: "License is currently active on another device" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
-      );
+      pool.push(hwid);
     }
 
-    const updateFields: Record<string, unknown> = { hwid: JSON.stringify(hwids) };
+    const updateFields: Record<string, unknown> = { hwid: formatHwidPools(pools) };
     if (!data.program_type && program_type) {
       updateFields.program_type = JSON.stringify([program_type]);
     }

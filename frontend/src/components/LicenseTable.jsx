@@ -3,10 +3,19 @@ import { api } from "../lib/api";
 
 const PAGE_SIZE = 15;
 
+// Format baru: {"nihongo":[...],"others":[...]}; format lama (array flat) = pool Nihongo
 function parseHwids(hwid) {
   if (!hwid) return [];
-  try { const p = JSON.parse(hwid); return Array.isArray(p) ? p : []; }
-  catch { return [hwid]; }
+  let p;
+  try { p = JSON.parse(hwid); }
+  catch { return [{ hwid, pool: "nihongo" }]; }
+  if (Array.isArray(p)) return p.filter(Boolean).map((h) => ({ hwid: h, pool: "nihongo" }));
+  if (p && typeof p === "object") {
+    const n = (Array.isArray(p.nihongo) ? p.nihongo : []).filter(Boolean).map((h) => ({ hwid: h, pool: "nihongo" }));
+    const o = (Array.isArray(p.others) ? p.others : []).filter(Boolean).map((h) => ({ hwid: h, pool: "others" }));
+    return [...n, ...o];
+  }
+  return [];
 }
 
 function parseProgramTypes(pt) {
@@ -20,6 +29,10 @@ function HwidCell({ hwid, slots }) {
   const ref = useRef(null);
   const list = parseHwids(hwid);
   const count = list.length;
+  const nihongoCount = list.filter((x) => x.pool === "nihongo").length;
+  const othersCount = count - nihongoCount;
+  const maxSlots = slots || 1;
+  const nihongoMax = Math.max(2, maxSlots);
 
   useEffect(() => {
     if (!open) return;
@@ -39,18 +52,23 @@ function HwidCell({ hwid, slots }) {
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
         </svg>
-        {count}/{slots || 1}
+        {count}
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-600 dark:bg-slate-800">
-          <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">HWID List ({count}/{slots || 1})</div>
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[240px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-600 dark:bg-slate-800">
+          <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Nihongo {nihongoCount}/{nihongoMax} · Lainnya {othersCount}/{maxSlots}
+          </div>
           {list.length === 0 ? (
             <div className="px-1 text-xs text-slate-400">No HWID bound</div>
           ) : (
-            list.map((h, i) => (
+            list.map((item, i) => (
               <div key={i} className="flex items-center gap-2 rounded px-1 py-0.5 text-xs font-mono text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700">
                 <span className="shrink-0 text-[10px] text-slate-400">{i + 1}.</span>
-                <span className="truncate">{h}</span>
+                <span className="truncate">{item.hwid}</span>
+                <span className={`ml-auto shrink-0 rounded px-1 text-[9px] ${item.pool === "nihongo" ? "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400" : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"}`}>
+                  {item.pool === "nihongo" ? "N5" : "Other"}
+                </span>
               </div>
             ))
           )}

@@ -122,20 +122,32 @@ async function runAutoCleanup() {
 
 /* ---------- HWID helpers ---------- */
 
-function parseHwids(hwid) {
-  if (!hwid) return [];
+// Format baru: {"nihongo":[...],"others":[...]}
+// Format lama (array flat) diklasifikasi ke pool nihongo agar program lain tidak terblokir
+function parseHwidPools(raw) {
+  const pools = { nihongo: [], others: [] };
+  if (!raw) return pools;
+  let parsed;
   try {
-    const parsed = JSON.parse(hwid);
-    if (Array.isArray(parsed)) return parsed;
-    return [];
+    parsed = JSON.parse(raw);
   } catch {
-    return [hwid];
+    pools.nihongo.push(raw);
+    return pools;
   }
+  if (Array.isArray(parsed)) {
+    pools.nihongo = parsed.filter(Boolean);
+  } else if (parsed && typeof parsed === "object") {
+    pools.nihongo = Array.isArray(parsed.nihongo) ? parsed.nihongo.filter(Boolean) : [];
+    pools.others = Array.isArray(parsed.others) ? parsed.others.filter(Boolean) : [];
+  }
+  return pools;
 }
 
-function formatHwids(hwid) {
-  const list = parseHwids(hwid);
-  return list.length;
+function formatHwidPools(pools) {
+  return JSON.stringify({
+    nihongo: pools.nihongo || [],
+    others: pools.others || [],
+  });
 }
 
 /* ---------- program type helpers ---------- */
@@ -220,32 +232,24 @@ app.post("/api/verify-license", async (req, res) => {
       }
     }
 
-    // LOGIKA PENGIKATAN HWID
+    // LOGIKA PENGIKATAN HWID — dipisah per pool:
+    // - Nihongo Master: pool sendiri, maksimal max(2, hwid_slots) device
+    // - Program lain: pool bersama, maksimal hwid_slots device (tidak bisa dibuka berbarengan antar program lain)
     const maxSlots = data.hwid_slots || 1;
-    let hwids = parseHwids(data.hwid);
+    const pools = parseHwidPools(data.hwid);
+    const isNihongo = program_type === "Nihongo Master";
+    const pool = isNihongo ? pools.nihongo : pools.others;
+    const poolMax = isNihongo ? Math.max(2, maxSlots) : maxSlots;
 
-    if (hwids.length === 0) {
-      hwids = [hwid];
-    } else if (!hwids.includes(hwid)) {
-      if (program_type === "Nihongo Master") {
-        // Khusus Nihongo Master: selalu izinkan maksimal 2 device aktif bersamaan
-        // (abaikan hwid_slots default 1 — tetap hormati jika hwid_slots > 2)
-        const nihongoMaxSlots = Math.max(2, maxSlots);
-        if (hwids.length < nihongoMaxSlots) {
-          hwids.push(hwid); // Tambahkan device kedua
-        } else {
-          return fail(res, "License is already in use on another device", 403);
-        }
-      } else {
-        // Program lain (Piano, dll): Hanya boleh 1 device aktif dalam satu waktu
-        if (hwids.length >= maxSlots) {
-          return fail(res, "License is already in use on another device", 403);
-        }
-        return fail(res, "License is currently active on another device", 403);
+    const alreadyBound = pools.nihongo.includes(hwid) || pools.others.includes(hwid);
+    if (!alreadyBound) {
+      if (pool.length >= poolMax) {
+        return fail(res, "License is already in use on another device", 403);
       }
+      pool.push(hwid);
     }
 
-    const updateFields = { hwid: JSON.stringify(hwids) };
+    const updateFields = { hwid: formatHwidPools(pools) };
     if (!data.program_type && program_type) {
       updateFields.program_type = formatProgramTypes([program_type]);
     }
