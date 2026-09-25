@@ -16,7 +16,7 @@ app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
 app.use(cors());
-app.use(express.json({ limit: "16kb" }));
+app.use(express.json({ limit: "2mb" }));
 
 /* ---------- helpers ---------- */
 
